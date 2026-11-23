@@ -114,7 +114,7 @@ function search(text) {
     if (words.every(w => s.includes(" " + w))) hits.push(i);
   }
   hits.sort((a, b) => ITEMS[b][5] - ITEMS[a][5] || ITEMS[a][0].length - ITEMS[b][0].length);
-  return hits.slice(0, 5).map(i => ({ id: i, name: ITEMS[i][0], brand: ITEMS[i][1], gender: GENDER_CODE[ITEMS[i][4]],
+  return hits.slice(0, 6).map(i => ({ id: i, name: ITEMS[i][0], brand: ITEMS[i][1], gender: GENDER_CODE[ITEMS[i][4]],
                                       accords: ITEMS[i][2], ratingCount: ITEMS[i][5] }));
 }
 

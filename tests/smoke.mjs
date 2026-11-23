@@ -68,10 +68,27 @@ if (!/Found it — Sauvage/.test(searchText)) problems.push(`search did not find
 const similar = await lastCards().locator(".card-name").allInnerTexts();
 if (similar.length !== 3 || similar.some(n => /^Sauvage/.test(n))) problems.push(`similar-to picks look wrong: ${similar}`);
 
+// The "Already love a fragrance?" picker: type, see suggestions, pick with the keyboard.
+await page.fill("#fav-input", "");
+await page.type("#fav-input", "coco mad", { delay: 40 });
+await page.waitForSelector('#fav-list li[role="option"]:not(.fav-empty)', { timeout: 15000 });
+const suggestions = await page.locator('#fav-list li[role="option"] .fav-name').allInnerTexts();
+if (!suggestions[0]?.startsWith("Coco Mademoiselle")) problems.push(`picker suggestions look wrong: ${suggestions}`);
+if (await page.getAttribute("#fav-input", "aria-expanded") !== "true") problems.push("picker: aria-expanded not set");
+const beforePick = await page.locator(".cards").count();
+await page.press("#fav-input", "Enter");
+await page.waitForFunction(n => document.querySelectorAll(".cards").length > n && !document.querySelector(".typing"), beforePick, { timeout: 30000 });
+const pickText = await page.locator(".row.ai .txt").last().innerText();
+if (!/Found it — Coco Mademoiselle/.test(pickText)) problems.push(`picker did not anchor on Coco Mademoiselle: ${pickText.slice(0, 120)}`);
+const pickBadges = await lastCards().locator(".badge").allInnerTexts();
+if (pickBadges.some(b => b.includes("Men's"))) problems.push(`picked a women's favourite but got men's picks: ${pickBadges}`);
+const similarToCoco = await lastCards().locator(".card-name").allInnerTexts();
+
 const stats = await page.evaluate(() => ({ n: STATS.recCount, avgMs: Math.round(STATS.recMs / Math.max(1, STATS.recCount)) }));
 await browser.close();
 
-const report = { cpuSlowdown: CPU_SLOWDOWN, modelLoadMs, recommendations: stats.n, avgRecommendMs: stats.avgMs, quizPicks, refined, similarToSauvage: similar };
+const report = { cpuSlowdown: CPU_SLOWDOWN, modelLoadMs, recommendations: stats.n, avgRecommendMs: stats.avgMs, quizPicks, refined, similarToSauvage: similar,
+                 pickerSuggestions: suggestions, similarToCocoMademoiselle: similarToCoco };
 console.log(JSON.stringify(report, null, 1));
 if (modelLoadMs > LIMITS.modelLoadMs) problems.push(`model load ${modelLoadMs} ms > ${LIMITS.modelLoadMs} ms`);
 if (stats.avgMs > LIMITS.recommendMs) problems.push(`recommendation ${stats.avgMs} ms > ${LIMITS.recommendMs} ms`);
