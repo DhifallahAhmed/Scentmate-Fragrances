@@ -23,10 +23,12 @@ Netlify
 |---|---|
 | `site/` | Everything Netlify publishes |
 | `netlify/functions/feedback.mjs` | Saves likes; `GET` with `X-Admin-Token` exports them as JSONL |
-| `train.py` | Preprocess the dataset, learn the 64-d scent space, train the trait encoder |
-| `enrich.py` | Add `gender` (name rules + classifier) and `popularity` columns to the dataset |
-| `build_model.py` | Fuse encoder + catalogue + ranking rules into `site/model/` and verify it |
-| `data/` | Put `fragrances_clean.json` here (not committed) |
+| `clean.py` | Raw Parfumo CSV → `data/fragrances_clean.json`: stable keys, missing ratings as `null`, junk rows removed, product types |
+| `enrich.py` | Add gender (name rules + classifier), rating source (dataset / web / estimated) and popularity |
+| `train.py` | Learn the 64-d scent space and the trait encoder (perfumes only) |
+| `build_model.py` | Fuse encoder + catalogue + ranking rules into `site/model/`, verify it, then run the evaluation |
+| `evaluate.py` | Score the shipped model on `eval/personas.json`; fails on broken rules or a drop vs `eval/baseline.json` |
+| `data/` | Raw CSV + generated dataset (not committed); `rating_overrides.csv` and `legacy_index_keys.json.gz` are committed |
 
 ## Run locally
 
@@ -41,13 +43,16 @@ Open http://localhost:8080. (The feedback button needs Netlify; use `npx netlify
 
 ```bash
 pip install -r requirements.txt
-python enrich.py        # only when the dataset changes
+python clean.py         # data/02_Parfumo_Perfumes.csv.gz -> data/fragrances_clean.json
+python enrich.py        # gender, rating source, popularity
 python train.py         # -> artifacts/
-python build_model.py   # -> site/model/   (then commit + push; Netlify redeploys)
+python build_model.py   # -> site/model/, then the quality gate (evaluate.py); commit + push if it passes
 ```
 
 ### Learning from real users
 1. Set `ADMIN_TOKEN` in Netlify → Site configuration → Environment variables.
 2. Download the likes:
    `curl -H "X-Admin-Token: <token>" https://<your-site>.netlify.app/api/feedback > feedback.jsonl`
-3. Run `train.py` and `build_model.py` again (with the same dataset file), commit, push.
+3. Run `train.py` and `build_model.py` again, commit, push. Likes are stored against each fragrance's
+   stable key, so they stay valid even when the dataset is re-cleaned (older position-based likes are
+   translated with `data/legacy_index_keys.json.gz`).

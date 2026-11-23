@@ -1,5 +1,5 @@
 """train.py - preprocess fragrances, build embeddings, train + export the trait model."""
-import json, re, sys, unicodedata
+import gzip, json, re, sys, unicodedata
 from pathlib import Path
 
 import numpy as np
@@ -11,7 +11,8 @@ from sklearn.neural_network import MLPRegressor
 import onnx
 from onnx import helper, numpy_helper, TensorProto
 
-DATA = Path(sys.argv[1] if len(sys.argv) > 1 else Path(__file__).parent / "data" / "fragrances_clean.json")
+HERE = Path(__file__).parent
+DATA = Path(sys.argv[1] if len(sys.argv) > 1 else HERE / "data" / "fragrances_clean.json")
 OUT = Path("artifacts"); OUT.mkdir(exist_ok=True)
 EMB_DIM = 64
 
@@ -66,15 +67,59 @@ def mlp_to_onnx(mlp: MLPRegressor, n_in: int) -> onnx.ModelProto:
     onnx.checker.check_model(model)
     return model
 
+def key_hash(key: str) -> int:
+    """32-bit FNV-1a of the stable page key. The browser gets this compact number per fragrance and sends
+    it back with feedback; train.py maps it back to the fragrance (build_model.py checks there are no collisions)."""
+    h = 0x811C9DC5
+    for b in key.encode("utf-8"):
+        h = ((h ^ b) * 0x01000193) & 0xFFFFFFFF
+    return h
+
+def load_feedback(recs):
+    """Real "I'd wear this" clicks (exported from /api/feedback) -> list of (traits, row index in recs).
+    New rows carry key_hash (stable across rebuilds). Old rows carry liked_index = a position in the model
+    that was live when they were collected; data/legacy_index_keys.json.gz translates those to keys."""
+    fb = Path("feedback.jsonl")
+    if not fb.exists():
+        return []
+    by_key = {r["key"]: i for i, r in enumerate(recs)}
+    by_hash = {key_hash(k): i for k, i in by_key.items()}
+    legacy_path = HERE / "data" / "legacy_index_keys.json.gz"
+    legacy = json.load(gzip.open(legacy_path, "rt", encoding="utf-8")) if legacy_path.exists() else []
+    out, skipped = [], 0
+    for line in fb.read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        row = json.loads(line)
+        if "key_hash" in row:
+            i = by_hash.get(row["key_hash"])
+        elif "liked_index" in row and 0 <= row["liked_index"] < len(legacy):
+            i = by_key.get(legacy[row["liked_index"]])
+        else:
+            i = None
+        if i is None or sum(row.get("traits", {}).values()) <= 0:
+            skipped += 1                       # fragrance no longer recommended, or empty profile
+            continue
+        out.append((row["traits"], i))
+    print(f"feedback: {len(out)} usable rows, {skipped} skipped")
+    return out
+
 def main():
     raw = json.loads(DATA.read_text(encoding="utf-8"))
-    # Missing values: drop records with zero olfactory info (~29%); they can never be matched.
-    recs = [r for r in raw if tokens(r)]
-    print(f"kept {len(recs)}/{len(raw)} records with notes/accords")
+    # Recommend real perfumes only (no after-shaves / hair mists — see clean.py productType), and drop
+    # records with zero olfactory info (~29%): they can never be matched.
+    recs = [r for r in raw if r.get("productType", "fragrance") == "fragrance" and tokens(r)]
+    print(f"kept {len(recs)}/{len(raw)} fragrances with notes/accords")
 
     # --- 3. Sparse TF-IDF over accord+note tokens (rare notes < 5 uses dropped as noise).
     vec = TfidfVectorizer(analyzer=tokens, min_df=5, dtype=np.float32)
     X = vec.fit_transform(recs)                       # (n_fragrances, vocab) sparse
+    # Records whose every token is too rare to be in the vocabulary get an all-zero fingerprint and
+    # could never match anyone — drop them.
+    nonzero = np.asarray(X.getnnz(axis=1) > 0)
+    if not nonzero.all():
+        print(f"dropped {int((~nonzero).sum())} records with an empty fingerprint")
+        recs, X = [r for r, k in zip(recs, nonzero) if k], X[nonzero]
     vocab = vec.vocabulary_
     print("vocab size", len(vocab))
 
@@ -96,19 +141,13 @@ def main():
     rng = np.random.default_rng(0)
     Xs = rng.dirichlet(np.full(len(TRAIT_NAMES), 0.3), size=20000).astype(np.float32)
     Ys = normalize(Xs @ trait_emb)
-    # Real "♡ Love it" clicks exported from the Space (GET /feedback/export). Each line:
-    # {"traits": {...}, "liked_index": int, ...}. liked_index refers to this same record order,
-    # so retrain on the SAME fragrances_clean.json the deployed model was built from.
-    fb = Path("feedback.jsonl")
-    if fb.exists():
-        rows = [json.loads(l) for l in fb.read_text(encoding="utf-8").splitlines() if l.strip()]
-        rows = [r for r in rows if 0 <= r["liked_index"] < len(E) and sum(r["traits"].values()) > 0]
-        if rows:
-            Xf = np.array([[max(0.0, r["traits"].get(t, 0.0)) for t in TRAIT_NAMES] for r in rows], np.float32)
-            Xf /= Xf.sum(axis=1, keepdims=True)           # same scale as training mixes (the model normalises too)
-            Yf = E[[r["liked_index"] for r in rows]]
-            Xs, Ys = np.vstack([Xs, np.repeat(Xf, 20, 0)]), np.vstack([Ys, np.repeat(Yf, 20, 0)])  # upweight real data
-            print(f"using {len(rows)} real feedback rows")
+    # Real "I'd wear this" clicks (GET /api/feedback on the Netlify site, saved as feedback.jsonl).
+    rows = load_feedback(recs)
+    if rows:
+        Xf = np.array([[max(0.0, t.get(n, 0.0)) for n in TRAIT_NAMES] for t, _ in rows], np.float32)
+        Xf /= Xf.sum(axis=1, keepdims=True)           # same scale as training mixes (the model normalises too)
+        Yf = E[[i for _, i in rows]]
+        Xs, Ys = np.vstack([Xs, np.repeat(Xf, 20, 0)]), np.vstack([Ys, np.repeat(Yf, 20, 0)])  # upweight real data
 
     # --- 7. Tiny MLP: traits(8) -> 32 -> 64. Trains in seconds on CPU.
     mlp = MLPRegressor(hidden_layer_sizes=(32,), max_iter=200, early_stopping=True, random_state=0)
@@ -120,10 +159,12 @@ def main():
     np.save(OUT / "fragrance_emb.npy", E)
     # gender / popularity come from enrich.py (run it once before training).
     meta = {"traits": TRAIT_NAMES,
-            "items": [{"name": r["name"], "brand": r["brand"], "accords": r["mainAccords"],
+            "items": [{"key": r["key"], "name": r["name"], "brand": r["brand"], "accords": r["mainAccords"],
                        "notes": list(dict.fromkeys(r["topNotes"] + r["middleNotes"] + r["baseNotes"]))[:8],
                        "gender": r.get("gender"), "popularity": r.get("popularity", 0.0),
-                       "ratingCount": r["ratingCount"]} for r in recs]}
+                       # best available count: real (dataset / web) or, if unknown, the estimate (see enrich.py)
+                       "ratingCount": r["ratingCount"] or r.get("ratingCountEstimated", 0),
+                       "ratingSource": r.get("ratingSource", "dataset")} for r in recs]}
     (OUT / "meta.json").write_text(json.dumps(meta, ensure_ascii=False), encoding="utf-8")
     print("exported to", OUT.resolve())
 

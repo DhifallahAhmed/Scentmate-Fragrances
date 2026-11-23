@@ -24,3 +24,9 @@ feedback.jsonl
 .env
 .netlify/
 .claude/
+
+# Raw source dataset (scraped; not redistributed)
+data/*.csv.gz
+
+# Evaluation output (the baseline and personas ARE committed)
+eval/report.json

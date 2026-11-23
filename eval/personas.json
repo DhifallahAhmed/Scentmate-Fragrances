@@ -1,0 +1,1679 @@
+{
+ "_about": "Hand-written test personas for evaluate.py. 'answers' are the exact quiz button labels (gender first). 'refine' mimics a follow-up like 'fresher and spicier' (must) or 'less sweet' (avoid). 'expected' = fragrances a knowledgeable advisor would accept for this person ([brand, exact name or unique name prefix]). These are judgment calls — review and extend them; they are a regression guard, not ground truth.",
+ "personas": [
+  {
+   "id": "m-office-fresh",
+   "answers": [
+    "Men's",
+    "Exploring somewhere new",
+    "Quiet and deep",
+    "Work and the office",
+    "Summer",
+    "Fresh and clean"
+   ],
+   "expected": [
+    [
+     "Chanel",
+     "Bleu de Chanel Chanel 2010 Eau de Toilette"
+    ],
+    [
+     "Chanel",
+     "Bleu de Chanel Chanel 2014 Eau de Parfum"
+    ],
+    [
+     "Chanel",
+     "Allure Homme Sport Chanel 2004"
+    ],
+    [
+     "Giorgio Armani",
+     "Acqua di Giò Profumo Giorgio Armani 2015 Parfum"
+    ],
+    [
+     "Dior",
+     "Dior Homme Dior 2020 Eau de Toilette"
+    ],
+    [
+     "Tom Ford",
+     "Grey Vetiver Tom Ford 2009"
+    ],
+    [
+     "Issey Miyake",
+     "L'Eau d'Issey pour Homme Issey Miyake 1994"
+    ],
+    [
+     "Acqua di Parma",
+     "Colonia Acqua di Parma 1916"
+    ],
+    [
+     "Prada",
+     "L'Homme"
+    ]
+   ]
+  },
+  {
+   "id": "m-blue-modern",
+   "answers": [
+    "Men's",
+    "Out with friends",
+    "Bold and confident",
+    "Work and the office",
+    "Spring",
+    "Fresh and clean"
+   ],
+   "expected": [
+    [
+     "Dior",
+     "Sauvage Dior 2015 Eau de Toilette"
+    ],
+    [
+     "Dior",
+     "Sauvage Dior 2018 Eau de Parfum"
+    ],
+    [
+     "Chanel",
+     "Bleu de Chanel Chanel 2014 Eau de Parfum"
+    ],
+    [
+     "Yves Saint Laurent",
+     "Y Yves Saint Laurent 2018 Eau de Parfum"
+    ],
+    [
+     "Prada",
+     "Luna Rossa Carbon"
+    ],
+    [
+     "Paco Rabanne",
+     "Invictus Paco Rabanne 2013"
+    ],
+    [
+     "Fragrance One",
+     "Office for Men"
+    ]
+   ]
+  },
+  {
+   "id": "m-club-sweet",
+   "answers": [
+    "Men's",
+    "Out with friends",
+    "Fun and spontaneous",
+    "Dates and nights out",
+    "Winter",
+    "Sweet and comforting"
+   ],
+   "expected": [
+    [
+     "Jean Paul Gaultier",
+     "Ultra Mâle"
+    ],
+    [
+     "Viktor & Rolf",
+     "Spicebomb Extreme"
+    ],
+    [
+     "Paco Rabanne",
+     "Million Paco Rabanne 2008"
+    ],
+    [
+     "Versace",
+     "Eros Versace 2012 Eau de Toilette"
+    ],
+    [
+     "Giorgio Armani",
+     "Emporio Armani - Stronger With You"
+    ],
+    [
+     "Mugler",
+     "A*Men Angel Men"
+    ],
+    [
+     "Givenchy",
+     "Pi Givenchy 1999"
+    ],
+    [
+     "Hugo Boss",
+     "The Scent for Him Hugo Boss 2015"
+    ]
+   ]
+  },
+  {
+   "id": "m-date-spicy",
+   "answers": [
+    "Men's",
+    "A dinner date",
+    "Bold and confident",
+    "Dates and nights out",
+    "Autumn",
+    "Warm and spicy"
+   ],
+   "expected": [
+    [
+     "Viktor & Rolf",
+     "Spicebomb"
+    ],
+    [
+     "Viktor & Rolf",
+     "Spicebomb Extreme"
+    ],
+    [
+     "Dolce & Gabbana",
+     "The One for Men Dolce & Gabbana 2008"
+    ],
+    [
+     "Giorgio Armani",
+     "Armani Code Black Code"
+    ],
+    [
+     "Tom Ford",
+     "Tobacco Vanille Tom Ford 2007"
+    ],
+    [
+     "Giorgio Armani",
+     "Emporio Armani - Stronger With You"
+    ],
+    [
+     "Parfums de Marly",
+     "Kalan"
+    ]
+   ]
+  },
+  {
+   "id": "m-cozy-gourmand",
+   "answers": [
+    "Men's",
+    "Cozy at home",
+    "Warm and caring",
+    "Everyday, casual",
+    "Winter",
+    "Sweet and comforting"
+   ],
+   "expected": [
+    [
+     "Tom Ford",
+     "Tobacco Vanille Tom Ford 2007"
+    ],
+    [
+     "Giorgio Armani",
+     "Emporio Armani - Stronger With You"
+    ],
+    [
+     "Givenchy",
+     "Pi Givenchy 1999"
+    ],
+    [
+     "Mugler",
+     "A*Men Angel Men"
+    ],
+    [
+     "Viktor & Rolf",
+     "Spicebomb Extreme"
+    ],
+    [
+     "Kilian",
+     "Black Phantom - Memento Mori"
+    ],
+    [
+     "Hermès",
+     "Ambre Narguilé"
+    ]
+   ]
+  },
+  {
+   "id": "m-mysterious-smoky",
+   "answers": [
+    "Men's",
+    "Exploring somewhere new",
+    "Quiet and deep",
+    "Special occasions",
+    "Autumn",
+    "Deep and smoky"
+   ],
+   "expected": [
+    [
+     "Lalique",
+     "Encre Noire à L'Extrême"
+    ],
+    [
+     "Tom Ford",
+     "Tobacco Oud"
+    ],
+    [
+     "Amouage",
+     "Memoir Man"
+    ],
+    [
+     "Yves Saint Laurent",
+     "M7 M7 Oud Absolu"
+    ],
+    [
+     "Nasomatto",
+     "Duro Nasomatto 2007"
+    ],
+    [
+     "Marc Gebauer",
+     "Air Tiger"
+    ],
+    [
+     "Maison Francis Kurkdjian",
+     "Oud Maison Francis Kurkdjian 2012"
+    ],
+    [
+     "Tom Ford",
+     "Ombré Leather Parfum"
+    ],
+    [
+     "Stéphane Humbert Lucas",
+     "Taklamakan"
+    ],
+    [
+     "Chanel",
+     "Le Lion de"
+    ]
+   ]
+  },
+  {
+   "id": "m-classic-leather",
+   "answers": [
+    "Men's",
+    "A dinner date",
+    "Bold and confident",
+    "Special occasions",
+    "Autumn",
+    "Deep and smoky"
+   ],
+   "expected": [
+    [
+     "Azzaro",
+     "Azzaro pour Homme Azzaro 1978"
+    ],
+    [
+     "Yves Saint Laurent",
+     "Kouros Yves Saint Laurent 1981"
+    ],
+    [
+     "Guerlain",
+     "Habit Rouge Guerlain 1965 Eau de Toilette"
+    ],
+    [
+     "Parfums de Marly",
+     "Godolphin"
+    ],
+    [
+     "Tom Ford",
+     "Ombré Leather Parfum"
+    ],
+    [
+     "Creed",
+     "Aventus"
+    ]
+   ]
+  },
+  {
+   "id": "m-aquatic-summer",
+   "answers": [
+    "Men's",
+    "Exploring somewhere new",
+    "Fun and spontaneous",
+    "Everyday, casual",
+    "Summer",
+    "Fresh and clean"
+   ],
+   "expected": [
+    [
+     "Giorgio Armani",
+     "Acqua di Giò Profumo Giorgio Armani 2015 Parfum"
+    ],
+    [
+     "Giorgio Armani",
+     "Acqua di Giò Profondo Giorgio Armani 2020"
+    ],
+    [
+     "Issey Miyake",
+     "L'Eau d'Issey pour Homme Issey Miyake 1994"
+    ],
+    [
+     "Orto Parisi",
+     "Megamare"
+    ],
+    [
+     "Versace",
+     "Versace Man Eau Fraîche"
+    ],
+    [
+     "Bvlgari",
+     "Aqva Amara Bvlgari 2014 Eau de Toilette"
+    ],
+    [
+     "Chanel",
+     "Allure Homme Sport Chanel 2004"
+    ],
+    [
+     "Davidoff",
+     "Cool Water Intense"
+    ],
+    [
+     "Nautica",
+     "Voyage Nautica 2006"
+    ]
+   ]
+  },
+  {
+   "id": "m-green-calm",
+   "answers": [
+    "Men's",
+    "Cozy at home",
+    "Quiet and deep",
+    "Work and the office",
+    "Spring",
+    "Fresh and clean"
+   ],
+   "expected": [
+    [
+     "Tom Ford",
+     "Grey Vetiver Tom Ford 2009"
+    ],
+    [
+     "Guerlain",
+     "Vetiver Guerlain 1959"
+    ],
+    [
+     "Lalique",
+     "Encre Noire Sport"
+    ],
+    [
+     "Diptyque",
+     "Philosykos Diptyque 1996 Eau de Toilette"
+    ],
+    [
+     "Parfums de Marly",
+     "Greenley"
+    ],
+    [
+     "Hermès",
+     "H24 Hermès 2021"
+    ],
+    [
+     "Acqua di Parma",
+     "Colonia Acqua di Parma 1916"
+    ],
+    [
+     "Hugo Boss",
+     "Hugo Hugo Boss 1995"
+    ]
+   ]
+  },
+  {
+   "id": "m-citrus-easy",
+   "answers": [
+    "Men's",
+    "Exploring somewhere new",
+    "Warm and caring",
+    "Everyday, casual",
+    "Summer",
+    "Fresh and clean"
+   ],
+   "expected": [
+    [
+     "Acqua di Parma",
+     "Colonia Acqua di Parma 1916"
+    ],
+    [
+     "Acqua di Parma",
+     "Bergamotto di Calabria"
+    ],
+    [
+     "Creed",
+     "Himalaya"
+    ],
+    [
+     "Creed",
+     "Aventus Cologne"
+    ],
+    [
+     "De Ruy",
+     "Agua de Colonia 1916"
+    ],
+    [
+     "Calvin Klein",
+     "CK One Calvin Klein 1994"
+    ]
+   ]
+  },
+  {
+   "id": "m-iris-office",
+   "answers": [
+    "Men's",
+    "A dinner date",
+    "Quiet and deep",
+    "Work and the office",
+    "Spring",
+    "Soft and floral"
+   ],
+   "expected": [
+    [
+     "Prada",
+     "L'Homme"
+    ],
+    [
+     "Prada",
+     "L'Homme Intense"
+    ],
+    [
+     "Dior",
+     "Dior Homme Dior 2020 Eau de Toilette"
+    ],
+    [
+     "Prada",
+     "Amber pour Homme Prada 2006"
+    ],
+    [
+     "Van Cleef & Arpels",
+     "Bois d'Iris"
+    ],
+    [
+     "Maison Francis Kurkdjian",
+     "Amyris Homme Maison Francis Kurkdjian 2012 Eau de Toilette"
+    ]
+   ]
+  },
+  {
+   "id": "m-young-casual",
+   "answers": [
+    "Men's",
+    "Out with friends",
+    "Fun and spontaneous",
+    "Everyday, casual",
+    "Spring",
+    "Sweet and comforting"
+   ],
+   "expected": [
+    [
+     "Versace",
+     "Eros Versace 2012 Eau de Toilette"
+    ],
+    [
+     "Versace",
+     "Eros Versace 2020 Eau de Parfum"
+    ],
+    [
+     "Jean Paul Gaultier",
+     "Le Beau"
+    ],
+    [
+     "Yves Saint Laurent",
+     "Y Yves Saint Laurent 2018 Eau de Parfum"
+    ],
+    [
+     "Paco Rabanne",
+     "Invictus Paco Rabanne 2013"
+    ],
+    [
+     "Montblanc",
+     "Individuel Montblanc 2003"
+    ],
+    [
+     "Jean Paul Gaultier",
+     "Ultra Mâle"
+    ]
+   ]
+  },
+  {
+   "id": "m-oud-luxury",
+   "answers": [
+    "Men's",
+    "A dinner date",
+    "Quiet and deep",
+    "Special occasions",
+    "Winter",
+    "Deep and smoky"
+   ],
+   "expected": [
+    [
+     "Yves Saint Laurent",
+     "M7 M7 Oud Absolu"
+    ],
+    [
+     "Tom Ford",
+     "Tobacco Oud"
+    ],
+    [
+     "Maison Francis Kurkdjian",
+     "Oud Maison Francis Kurkdjian 2012"
+    ],
+    [
+     "Kilian",
+     "Black Phantom - Memento Mori"
+    ],
+    [
+     "Serge Lutens",
+     "Ambre sultan Serge Lutens 1993"
+    ],
+    [
+     "Stéphane Humbert Lucas",
+     "Taklamakan"
+    ]
+   ]
+  },
+  {
+   "id": "m-pro-confident",
+   "answers": [
+    "Men's",
+    "Out with friends",
+    "Bold and confident",
+    "Work and the office",
+    "Autumn",
+    "Warm and spicy"
+   ],
+   "expected": [
+    [
+     "Chanel",
+     "Bleu de Chanel Chanel 2014 Eau de Parfum"
+    ],
+    [
+     "Chanel",
+     "Bleu de Chanel Parfum"
+    ],
+    [
+     "Chanel",
+     "Allure Homme Chanel 1999"
+    ],
+    [
+     "Dior",
+     "Dior Homme Dior 2020 Eau de Toilette"
+    ],
+    [
+     "Giorgio Armani",
+     "Armani Code Black Code"
+    ],
+    [
+     "Dolce & Gabbana",
+     "The One for Men Dolce & Gabbana 2008"
+    ],
+    [
+     "Dior",
+     "Sauvage Dior 2018 Eau de Parfum"
+    ],
+    [
+     "Burberry",
+     "London for Men Burberry 2006"
+    ]
+   ]
+  },
+  {
+   "id": "m-soft-cozy",
+   "answers": [
+    "Men's",
+    "Cozy at home",
+    "Warm and caring",
+    "Everyday, casual",
+    "Autumn",
+    "Soft and floral"
+   ],
+   "expected": [
+    [
+     "Prada",
+     "L'Homme Intense"
+    ],
+    [
+     "Prada",
+     "L'Homme"
+    ],
+    [
+     "Prada",
+     "Amber pour Homme Prada 2006"
+    ],
+    [
+     "Amouage",
+     "Sunshine Man"
+    ],
+    [
+     "Maison Francis Kurkdjian",
+     "Gentle Fluidity (Gold)"
+    ],
+    [
+     "Van Cleef & Arpels",
+     "Bois Doré"
+    ],
+    [
+     "Jo Malone",
+     "Myrrh & Tonka"
+    ]
+   ]
+  },
+  {
+   "id": "w-romantic-floral",
+   "answers": [
+    "Women's",
+    "A dinner date",
+    "Warm and caring",
+    "Dates and nights out",
+    "Spring",
+    "Soft and floral"
+   ],
+   "expected": [
+    [
+     "Dior",
+     "J'adore Dior 1999 Eau de Parfum"
+    ],
+    [
+     "Chanel",
+     "Coco Mademoiselle Chanel 2001 Eau de Parfum"
+    ],
+    [
+     "Kenzo",
+     "Flower by Kenzo Kenzo 2000"
+    ],
+    [
+     "Narciso Rodriguez",
+     "For Her Narciso Rodriguez 2005"
+    ],
+    [
+     "Chanel",
+     "Chance Chanel 2002 Eau de Parfum"
+    ],
+    [
+     "Lancôme",
+     "Idôle"
+    ],
+    [
+     "Lancôme",
+     "Trésor Lancôme 1990 Eau de Parfum"
+    ],
+    [
+     "Elie Saab",
+     "Le Parfum Elie Saab 2011"
+    ]
+   ]
+  },
+  {
+   "id": "w-night-sweet",
+   "answers": [
+    "Women's",
+    "Out with friends",
+    "Fun and spontaneous",
+    "Dates and nights out",
+    "Winter",
+    "Sweet and comforting"
+   ],
+   "expected": [
+    [
+     "Yves Saint Laurent",
+     "Black Opium Yves Saint Laurent 2014 Eau de Parfum"
+    ],
+    [
+     "Carolina Herrera",
+     "Good Girl Carolina Herrera 2016 Eau de Parfum"
+    ],
+    [
+     "Lancôme",
+     "La Vie est Belle L'Eau de Parfum"
+    ],
+    [
+     "Mugler",
+     "Angel Mugler 1992"
+    ],
+    [
+     "Paco Rabanne",
+     "Lady Million Paco Rabanne 2010"
+    ],
+    [
+     "Pink Sugar",
+     "Pink Sugar Pink Sugar 2003"
+    ],
+    [
+     "Paco Rabanne",
+     "Olympēa Paco Rabanne 2015 Eau de Parfum"
+    ],
+    [
+     "Giorgio Armani",
+     "Sì Giorgio Armani 2013"
+    ]
+   ]
+  },
+  {
+   "id": "w-office-fresh",
+   "answers": [
+    "Women's",
+    "Exploring somewhere new",
+    "Quiet and deep",
+    "Work and the office",
+    "Summer",
+    "Fresh and clean"
+   ],
+   "expected": [
+    [
+     "Hermès",
+     "Un Jardin sur le Nil"
+    ],
+    [
+     "Giorgio Armani",
+     "Acqua di Gioia Giorgio Armani 2010"
+    ],
+    [
+     "Chanel",
+     "Chance Chanel 2002 Eau de Parfum"
+    ],
+    [
+     "Tom Ford",
+     "Neroli Portofino Tom Ford 2007"
+    ],
+    [
+     "Bvlgari",
+     "Omnia Crystalline Bvlgari 2005 Eau de Toilette"
+    ],
+    [
+     "Mugler",
+     "Mugler Cologne"
+    ],
+    [
+     "Maison Francis Kurkdjian",
+     "Petit Matin"
+    ],
+    [
+     "Byredo",
+     "Blanche Byredo 2009"
+    ],
+    [
+     "Maison Margiela",
+     "Replica - Lazy Sunday Morning Maison Margiela 2013 Eau de Toilette"
+    ],
+    [
+     "Hermès",
+     "Un Jardin sur le Toit"
+    ]
+   ]
+  },
+  {
+   "id": "w-clean-musk",
+   "answers": [
+    "Women's",
+    "Cozy at home",
+    "Warm and caring",
+    "Everyday, casual",
+    "Spring",
+    "Soft and floral"
+   ],
+   "expected": [
+    [
+     "Maison Margiela",
+     "Replica - Lazy Sunday Morning Maison Margiela 2013 Eau de Toilette"
+    ],
+    [
+     "Byredo",
+     "Blanche Byredo 2009"
+    ],
+    [
+     "Narciso Rodriguez",
+     "For Her Narciso Rodriguez 2005"
+    ],
+    [
+     "Lorenzo Villoresi",
+     "Teint de Neige Lorenzo Villoresi 2000 Eau de Toilette"
+    ],
+    [
+     "XerJoff",
+     "Irisss"
+    ],
+    [
+     "XerJoff",
+     "Apollonia"
+    ],
+    [
+     "Kenzo",
+     "Flower by Kenzo Kenzo 2000"
+    ],
+    [
+     "Jil Sander",
+     "Sun Jil Sander 1989"
+    ]
+   ]
+  },
+  {
+   "id": "w-mysterious-oriental",
+   "answers": [
+    "Women's",
+    "A dinner date",
+    "Quiet and deep",
+    "Special occasions",
+    "Winter",
+    "Deep and smoky"
+   ],
+   "expected": [
+    [
+     "Gucci",
+     "Gucci Intense Oud"
+    ],
+    [
+     "Montale",
+     "Black Aoud"
+    ],
+    [
+     "Dior",
+     "Oud Ispahan"
+    ],
+    [
+     "Guerlain",
+     "Santal Royal Guerlain 2014"
+    ],
+    [
+     "Mugler",
+     "Alien Mugler 2005"
+    ],
+    [
+     "Serge Lutens",
+     "Ambre sultan Serge Lutens 1993"
+    ],
+    [
+     "Chopard",
+     "Cašmir Chopard 1991 Eau de Parfum"
+    ],
+    [
+     "Calvin Klein",
+     "Obsession Calvin Klein 1985 Eau de Parfum"
+    ]
+   ]
+  },
+  {
+   "id": "w-playful-fruity",
+   "answers": [
+    "Women's",
+    "Out with friends",
+    "Fun and spontaneous",
+    "Everyday, casual",
+    "Summer",
+    "Sweet and comforting"
+   ],
+   "expected": [
+    [
+     "Prada",
+     "Paradoxe"
+    ],
+    [
+     "Burberry",
+     "Her Burberry 2018"
+    ],
+    [
+     "Giorgio Armani",
+     "My Way Giorgio Armani 2020"
+    ],
+    [
+     "Dolce & Gabbana",
+     "The One Dolce & Gabbana 2006"
+    ],
+    [
+     "Giorgio Armani",
+     "Sì Giorgio Armani 2013"
+    ],
+    [
+     "XerJoff",
+     "Accento Overdose"
+    ],
+    [
+     "Lalique",
+     "Amethyst"
+    ],
+    [
+     "Guerlain",
+     "La Petite Robe Noire Guerlain 2012 Eau de Parfum"
+    ]
+   ]
+  },
+  {
+   "id": "w-bold-amber",
+   "answers": [
+    "Women's",
+    "Out with friends",
+    "Bold and confident",
+    "Special occasions",
+    "Autumn",
+    "Warm and spicy"
+   ],
+   "expected": [
+    [
+     "Mugler",
+     "Alien Mugler 2005"
+    ],
+    [
+     "Mugler",
+     "Angel Mugler 1992"
+    ],
+    [
+     "Chopard",
+     "Cašmir Chopard 1991 Eau de Parfum"
+    ],
+    [
+     "Chopard",
+     "Wish Chopard 1997 Eau de Parfum"
+    ],
+    [
+     "Giorgio Armani",
+     "Armani Code pour Femme Giorgio Armani 2006 Eau de Parfum"
+    ],
+    [
+     "Cacharel",
+     "Loulou Cacharel 1987 Eau de Parfum"
+    ],
+    [
+     "Hermès",
+     "Twilly d'Hermès Hermès 2017 Eau de Parfum"
+    ],
+    [
+     "Mancera",
+     "Instant Crush"
+    ],
+    [
+     "Maison Francis Kurkdjian",
+     "Baccarat Rouge 540 Maison Francis Kurkdjian 2016 Eau de Parfum"
+    ]
+   ]
+  },
+  {
+   "id": "w-cozy-vanilla",
+   "answers": [
+    "Women's",
+    "Cozy at home",
+    "Warm and caring",
+    "Everyday, casual",
+    "Winter",
+    "Sweet and comforting"
+   ],
+   "expected": [
+    [
+     "Acqua di Parma",
+     "Mandorlo di Sicilia"
+    ],
+    [
+     "Profumum Roma",
+     "Acqua e Zucchero"
+    ],
+    [
+     "Liquides Imaginaires",
+     "Blanche Bête"
+    ],
+    [
+     "Elie Saab",
+     "Girl of Now"
+    ],
+    [
+     "Prada",
+     "Candy Prada 2011"
+    ],
+    [
+     "Montale",
+     "Chocolate Greedy"
+    ],
+    [
+     "Profumum Roma",
+     "Confetto"
+    ],
+    [
+     "Zara",
+     "Rich/Warm/Addictive"
+    ],
+    [
+     "bdk Parfums",
+     "Velvet Tonka"
+    ],
+    [
+     "Pink Sugar",
+     "Pink Sugar Pink Sugar 2003"
+    ]
+   ]
+  },
+  {
+   "id": "w-green-explorer",
+   "answers": [
+    "Women's",
+    "Exploring somewhere new",
+    "Fun and spontaneous",
+    "Everyday, casual",
+    "Spring",
+    "Fresh and clean"
+   ],
+   "expected": [
+    [
+     "Hermès",
+     "Un Jardin sur le Nil"
+    ],
+    [
+     "Hermès",
+     "Un Jardin sur le Toit"
+    ],
+    [
+     "Gucci",
+     "Mémoire d'une Odeur"
+    ],
+    [
+     "Diptyque",
+     "Philosykos Diptyque 1996 Eau de Toilette"
+    ],
+    [
+     "Guerlain",
+     "Aqua Allegoria Pamplelune"
+    ],
+    [
+     "Mugler",
+     "Mugler Cologne"
+    ],
+    [
+     "Calvin Klein",
+     "Eternity Calvin Klein 1988 Eau de Parfum"
+    ],
+    [
+     "Hermès",
+     "H24 Hermès 2021"
+    ]
+   ]
+  },
+  {
+   "id": "w-elegant-pro",
+   "answers": [
+    "Women's",
+    "A dinner date",
+    "Bold and confident",
+    "Work and the office",
+    "Autumn",
+    "Soft and floral"
+   ],
+   "expected": [
+    [
+     "Chanel",
+     "Coco Mademoiselle Chanel 2001 Eau de Parfum"
+    ],
+    [
+     "Chanel",
+     "Coco Mademoiselle Chanel 2018"
+    ],
+    [
+     "Chanel",
+     "N°5 Chanel 1921 Parfum"
+    ],
+    [
+     "Chanel",
+     "Chance Chanel 2002 Eau de Parfum"
+    ],
+    [
+     "Narciso Rodriguez",
+     "For Her Narciso Rodriguez 2005"
+    ],
+    [
+     "Elie Saab",
+     "Le Parfum Elie Saab 2011"
+    ],
+    [
+     "Lancôme",
+     "Idôle"
+    ],
+    [
+     "Hermès",
+     "Twilly d'Hermès Hermès 2017 Eau de Parfum"
+    ],
+    [
+     "Parfums MDCI",
+     "Chypre Palatin"
+    ]
+   ]
+  },
+  {
+   "id": "w-summer-beach",
+   "answers": [
+    "Women's",
+    "Exploring somewhere new",
+    "Warm and caring",
+    "Everyday, casual",
+    "Summer",
+    "Soft and floral"
+   ],
+   "expected": [
+    [
+     "Maison Margiela",
+     "Replica - Beach Walk"
+    ],
+    [
+     "Giorgio Armani",
+     "Acqua di Gioia Giorgio Armani 2010"
+    ],
+    [
+     "Bvlgari",
+     "Omnia Crystalline Bvlgari 2005 Eau de Toilette"
+    ],
+    [
+     "Tom Ford",
+     "Neroli Portofino Tom Ford 2007"
+    ],
+    [
+     "Chanel",
+     "Chance Chanel 2002 Eau de Parfum"
+    ],
+    [
+     "Maison Francis Kurkdjian",
+     "Petit Matin"
+    ],
+    [
+     "Byredo",
+     "Mojave Ghost Byredo 2014 Eau de Parfum"
+    ]
+   ]
+  },
+  {
+   "id": "w-date-sweet-floral",
+   "answers": [
+    "Women's",
+    "A dinner date",
+    "Fun and spontaneous",
+    "Dates and nights out",
+    "Spring",
+    "Sweet and comforting"
+   ],
+   "expected": [
+    [
+     "Lancôme",
+     "La Vie est Belle L'Eau de Parfum"
+    ],
+    [
+     "Carolina Herrera",
+     "Good Girl Carolina Herrera 2016 Eau de Parfum"
+    ],
+    [
+     "Giorgio Armani",
+     "Sì Giorgio Armani 2013"
+    ],
+    [
+     "Calvin Klein",
+     "Euphoria Calvin Klein 2005"
+    ],
+    [
+     "Dolce & Gabbana",
+     "The One Dolce & Gabbana 2006"
+    ],
+    [
+     "Paco Rabanne",
+     "Lady Million Paco Rabanne 2010"
+    ],
+    [
+     "Guerlain",
+     "La Petite Robe Noire Guerlain 2012 Eau de Parfum"
+    ],
+    [
+     "Paco Rabanne",
+     "Olympēa Paco Rabanne 2015 Eau de Parfum"
+    ],
+    [
+     "Prada",
+     "Paradoxe"
+    ]
+   ]
+  },
+  {
+   "id": "u-smoky-leather",
+   "answers": [
+    "Unisex",
+    "Exploring somewhere new",
+    "Bold and confident",
+    "Special occasions",
+    "Autumn",
+    "Deep and smoky"
+   ],
+   "expected": [
+    [
+     "Tom Ford",
+     "Tobacco Oud"
+    ],
+    [
+     "Tom Ford",
+     "Ombré Leather Parfum"
+    ],
+    [
+     "Maison Francis Kurkdjian",
+     "Oud Maison Francis Kurkdjian 2012"
+    ],
+    [
+     "Stéphane Humbert Lucas",
+     "Taklamakan"
+    ],
+    [
+     "Chanel",
+     "Le Lion de"
+    ],
+    [
+     "Heretic",
+     "Bourbon Patchouli"
+    ],
+    [
+     "Tiziana Terenzi",
+     "Spirito Fiorentino"
+    ],
+    [
+     "Nasomatto",
+     "Duro Nasomatto 2007"
+    ],
+    [
+     "XerJoff",
+     "Fars"
+    ]
+   ]
+  },
+  {
+   "id": "u-fresh",
+   "answers": [
+    "Unisex",
+    "Exploring somewhere new",
+    "Fun and spontaneous",
+    "Everyday, casual",
+    "Summer",
+    "Fresh and clean"
+   ],
+   "expected": [
+    [
+     "Calvin Klein",
+     "CK One Calvin Klein 1994"
+    ],
+    [
+     "Guerlain",
+     "Aqua Allegoria Pamplelune"
+    ],
+    [
+     "Hermès",
+     "H24 Hermès 2021"
+    ],
+    [
+     "Diptyque",
+     "Philosykos Diptyque 1996 Eau de Toilette"
+    ],
+    [
+     "Roja Parfums",
+     "Oceania"
+    ],
+    [
+     "Louis Vuitton",
+     "Pacific Chill"
+    ],
+    [
+     "XerJoff",
+     "Casamorati - Mefisto"
+    ],
+    [
+     "XerJoff",
+     "Kobe"
+    ],
+    [
+     "XerJoff",
+     "Erba Gold"
+    ],
+    [
+     "Nautica",
+     "Voyage Nautica 2006"
+    ]
+   ]
+  },
+  {
+   "id": "u-gourmand",
+   "answers": [
+    "Unisex",
+    "Cozy at home",
+    "Warm and caring",
+    "Everyday, casual",
+    "Winter",
+    "Sweet and comforting"
+   ],
+   "expected": [
+    [
+     "Hermès",
+     "Ambre Narguilé"
+    ],
+    [
+     "Montale",
+     "Chocolate Greedy"
+    ],
+    [
+     "Profumum Roma",
+     "Confetto"
+    ],
+    [
+     "bdk Parfums",
+     "Velvet Tonka"
+    ],
+    [
+     "Zara",
+     "Rich/Warm/Addictive"
+    ],
+    [
+     "Le Couvent",
+     "Eau des Missions"
+    ],
+    [
+     "Jo Malone",
+     "Myrrh & Tonka"
+    ],
+    [
+     "XerJoff",
+     "Casamorati - Italica"
+    ],
+    [
+     "XerJoff",
+     "Symphonium"
+    ],
+    [
+     "Tom Ford",
+     "Bitter Peach Tom Ford 2020"
+    ],
+    [
+     "Jean Paul Gaultier",
+     "Gaultier²"
+    ]
+   ]
+  },
+  {
+   "id": "u-amber-night",
+   "answers": [
+    "Unisex",
+    "A dinner date",
+    "Quiet and deep",
+    "Dates and nights out",
+    "Winter",
+    "Warm and spicy"
+   ],
+   "expected": [
+    [
+     "Maison Francis Kurkdjian",
+     "Baccarat Rouge 540 Maison Francis Kurkdjian 2016 Eau de Parfum"
+    ],
+    [
+     "Serge Lutens",
+     "Ambre sultan Serge Lutens 1993"
+    ],
+    [
+     "Van Cleef & Arpels",
+     "Bois Doré"
+    ],
+    [
+     "Serge Lutens",
+     "Féminité du bois"
+    ],
+    [
+     "Mancera",
+     "Instant Crush"
+    ],
+    [
+     "Initio",
+     "Absolute Aphrodisiac"
+    ],
+    [
+     "Calvin Klein",
+     "Obsession Calvin Klein 1985 Eau de Parfum"
+    ]
+   ]
+  },
+  {
+   "id": "any-office-fresh",
+   "answers": [
+    "No preference",
+    "Exploring somewhere new",
+    "Quiet and deep",
+    "Work and the office",
+    "Spring",
+    "Fresh and clean"
+   ],
+   "expected": [
+    [
+     "Chanel",
+     "Bleu de Chanel Chanel 2010 Eau de Toilette"
+    ],
+    [
+     "Chanel",
+     "Bleu de Chanel Chanel 2014 Eau de Parfum"
+    ],
+    [
+     "Hermès",
+     "H24 Hermès 2021"
+    ],
+    [
+     "Tom Ford",
+     "Grey Vetiver Tom Ford 2009"
+    ],
+    [
+     "Hermès",
+     "Un Jardin sur le Nil"
+    ],
+    [
+     "Chanel",
+     "Allure Homme Sport Chanel 2004"
+    ],
+    [
+     "Acqua di Parma",
+     "Colonia Acqua di Parma 1916"
+    ],
+    [
+     "Tom Ford",
+     "Neroli Portofino Tom Ford 2007"
+    ],
+    [
+     "Prada",
+     "L'Homme"
+    ],
+    [
+     "Giorgio Armani",
+     "Acqua di Giò Profumo Giorgio Armani 2015 Parfum"
+    ]
+   ]
+  },
+  {
+   "id": "any-night-sweet",
+   "answers": [
+    "No preference",
+    "Out with friends",
+    "Fun and spontaneous",
+    "Dates and nights out",
+    "Winter",
+    "Sweet and comforting"
+   ],
+   "expected": [
+    [
+     "Yves Saint Laurent",
+     "Black Opium Yves Saint Laurent 2014 Eau de Parfum"
+    ],
+    [
+     "Carolina Herrera",
+     "Good Girl Carolina Herrera 2016 Eau de Parfum"
+    ],
+    [
+     "Mugler",
+     "Angel Mugler 1992"
+    ],
+    [
+     "Viktor & Rolf",
+     "Spicebomb Extreme"
+    ],
+    [
+     "Jean Paul Gaultier",
+     "Ultra Mâle"
+    ],
+    [
+     "Tom Ford",
+     "Tobacco Vanille Tom Ford 2007"
+    ],
+    [
+     "Lancôme",
+     "La Vie est Belle L'Eau de Parfum"
+    ],
+    [
+     "Giorgio Armani",
+     "Emporio Armani - Stronger With You"
+    ]
+   ]
+  },
+  {
+   "id": "r-sauvage-path",
+   "answers": [
+    "Men's",
+    "Out with friends",
+    "Fun and spontaneous",
+    "Work and the office",
+    "Spring",
+    "Warm and spicy"
+   ],
+   "refine": {
+    "must": [
+     "Fresh",
+     "Spicy"
+    ]
+   },
+   "expected": [
+    [
+     "Dior",
+     "Sauvage Dior 2015 Eau de Toilette"
+    ],
+    [
+     "Dior",
+     "Sauvage Dior 2018 Eau de Parfum"
+    ],
+    [
+     "Chanel",
+     "Bleu de Chanel Chanel 2014 Eau de Parfum"
+    ],
+    [
+     "Chanel",
+     "Bleu de Chanel Parfum"
+    ],
+    [
+     "Dior",
+     "Dior Homme Dior 2020 Eau de Toilette"
+    ],
+    [
+     "Creed",
+     "Aventus Cologne"
+    ]
+   ]
+  },
+  {
+   "id": "r-women-less-sweet",
+   "answers": [
+    "Women's",
+    "Out with friends",
+    "Fun and spontaneous",
+    "Dates and nights out",
+    "Winter",
+    "Sweet and comforting"
+   ],
+   "refine": {
+    "avoid": [
+     "Sweet"
+    ]
+   },
+   "expected": [
+    [
+     "Chanel",
+     "Chance Chanel 2002 Eau de Parfum"
+    ],
+    [
+     "Hermès",
+     "Un Jardin sur le Nil"
+    ],
+    [
+     "Giorgio Armani",
+     "Acqua di Gioia Giorgio Armani 2010"
+    ],
+    [
+     "Calvin Klein",
+     "Eternity Calvin Klein 1988 Eau de Parfum"
+    ],
+    [
+     "Bvlgari",
+     "Omnia Crystalline Bvlgari 2005 Eau de Toilette"
+    ],
+    [
+     "Mugler",
+     "Mugler Cologne"
+    ],
+    [
+     "Gucci",
+     "Gucci Intense Oud"
+    ],
+    [
+     "Montale",
+     "Black Aoud"
+    ],
+    [
+     "Dior",
+     "Oud Ispahan"
+    ]
+   ]
+  },
+  {
+   "id": "r-men-woodier",
+   "answers": [
+    "Men's",
+    "Exploring somewhere new",
+    "Quiet and deep",
+    "Work and the office",
+    "Summer",
+    "Fresh and clean"
+   ],
+   "refine": {
+    "must": [
+     "Woody"
+    ]
+   },
+   "expected": [
+    [
+     "Chanel",
+     "Bleu de Chanel Chanel 2010 Eau de Toilette"
+    ],
+    [
+     "Chanel",
+     "Bleu de Chanel Chanel 2014 Eau de Parfum"
+    ],
+    [
+     "Chanel",
+     "Bleu de Chanel Parfum"
+    ],
+    [
+     "Dior",
+     "Dior Homme Dior 2020 Eau de Toilette"
+    ],
+    [
+     "Tom Ford",
+     "Grey Vetiver Tom Ford 2009"
+    ],
+    [
+     "Lalique",
+     "Encre Noire Sport"
+    ],
+    [
+     "Chanel",
+     "Allure Homme Chanel 1999"
+    ],
+    [
+     "Creed",
+     "Himalaya"
+    ]
+   ]
+  },
+  {
+   "id": "x-unique-men-fresh",
+   "answers": [
+    "Men's",
+    "Exploring somewhere new",
+    "Quiet and deep",
+    "Work and the office",
+    "Summer",
+    "Fresh and clean"
+   ],
+   "unique": true,
+   "expected": []
+  },
+  {
+   "id": "x-unique-women-sweet",
+   "answers": [
+    "Women's",
+    "Cozy at home",
+    "Warm and caring",
+    "Everyday, casual",
+    "Winter",
+    "Sweet and comforting"
+   ],
+   "unique": true,
+   "expected": []
+  }
+ ]
+}

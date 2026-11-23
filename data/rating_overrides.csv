@@ -1,0 +1,30 @@
+# Rating counts for famous fragrances whose ratings are MISSING in the Parfumo dataset.
+# Numbers are Parfumo community rating counts read from web search results (approximate snapshots).
+# enrich.py applies a row only when the dataset has no rating for that fragrance. Add rows freely.
+brand,name,ratingCount,source,retrieved
+Dior,Sauvage Dior 2015 Eau de Toilette,5836,https://www.parfumo.com/Perfumes/Dior/Sauvage_Eau_de_Toilette,2026-11-23
+Dior,Sauvage Dior 2018 Eau de Parfum,3428,https://www.parfumo.com/Perfumes/Dior/Sauvage_Eau_de_Parfum,2026-11-23
+Dior,J'adore Dior 1999 Eau de Parfum,1612,https://www.parfumo.com/Perfumes/Dior/J_Adore,2026-11-23
+Chanel,Bleu de Chanel Chanel 2010 Eau de Toilette,2862,https://www.parfumo.com/Perfumes/Chanel/Bleu_de_Chanel,2026-11-23
+Chanel,Bleu de Chanel Chanel 2014 Eau de Parfum,6007,https://www.parfumo.com/Perfumes/Chanel/Bleu_de_Chanel_Eau_de_Parfum,2026-11-23
+Chanel,Bleu de Chanel Parfum,2950,https://www.parfumo.com/Perfumes/Chanel/Bleu_de_Chanel_Parfum,2026-11-23
+Chanel,Coco Mademoiselle Chanel 2001 Eau de Parfum,2142,https://www.parfumo.com/Perfumes/Chanel/Coco_Mademoiselle,2026-11-23
+Chanel,Coco Mademoiselle Chanel 2018 Eau de Parfum Intense,743,https://www.parfumo.com/Perfumes/Chanel/Coco_Mademoiselle_Eau_de_Parfum_Intense,2026-11-23
+Chanel,N°5 Chanel 1921 Parfum,1325,https://www.parfumo.com/Perfumes/Chanel/No_5,2026-11-23
+Chanel,Allure Homme Sport Chanel 2004 Eau de Toilette,2587,https://www.parfumo.com/Perfumes/Chanel/Allure_Homme_Sport_Eau_de_Toilette,2026-11-23
+Maison Francis Kurkdjian,Baccarat Rouge 540 Maison Francis Kurkdjian 2016 Eau de Parfum,5406,https://www.parfumo.com/Perfumes/Maison_Francis_Kurkdjian/Baccarat_Rouge_540_Eau_de_Parfum,2026-11-23
+Creed,Aventus,8900,https://www.parfumo.com/Perfumes/Creed/aventus,2026-11-23
+Creed,Aventus Cologne,1594,https://www.parfumo.com/Perfumes/Creed/Aventus_Cologne,2026-11-23
+Yves Saint Laurent,Black Opium Yves Saint Laurent 2014 Eau de Parfum,2276,https://www.parfumo.com/Perfumes/Yves_Saint_Laurent/Black_Opium,2026-11-23
+Yves Saint Laurent,Y Yves Saint Laurent 2018 Eau de Parfum,4546,https://www.parfumo.com/Perfumes/Yves_Saint_Laurent/Y_Eau_de_Parfum,2026-11-23
+Carolina Herrera,Good Girl Carolina Herrera 2016 Eau de Parfum,1639,https://www.parfumo.com/Perfumes/Carolina_Herrera/Good_Girl_Eau_de_Parfum,2026-11-23
+Jean Paul Gaultier,Ultra Mâle,3600,https://www.parfumo.com/Perfumes/Jean_Paul_Gaultier/Ultra_Male,2026-11-23
+Viktor & Rolf,Spicebomb,2264,https://www.parfumo.com/Perfumes/Viktor_Rolf/Spicebomb,2026-11-23
+Viktor & Rolf,Spicebomb Extreme,6872,https://www.parfumo.com/Perfumes/Viktor_Rolf/Spicebomb_Extreme,2026-11-23
+Viktor & Rolf,Flowerbomb Viktor & Rolf Eau de Parfum,1242,https://www.parfumo.com/Perfumes/Viktor_Rolf/Flowerbomb,2026-11-23
+Tom Ford,Tobacco Vanille Tom Ford 2007 Eau de Parfum,6154,https://www.parfumo.com/Perfumes/Tom_Ford/Tobacco_Vanille_Eau_de_Parfum,2026-11-23
+Prada,L'Homme,8236,https://www.parfumo.com/Perfumes/Prada/L_Homme,2026-11-23
+Prada,L'Homme Intense,2700,https://www.parfumo.com/Perfumes/Prada/L_Homme_Intense,2026-11-23
+Versace,Eros Versace 2012 Eau de Toilette,4897,https://www.parfumo.com/Perfumes/Versace/Eros_Eau_de_Toilette,2026-11-23
+Giorgio Armani,Acqua di Giò Profumo Giorgio Armani 2015 Parfum,5098,https://www.parfumo.com/Perfumes/Giorgio_Armani/Acqua_di_Gio_Profumo,2026-11-23
+Mugler,Alien Mugler 2005 Eau de Parfum,2784,https://www.parfumo.com/Perfumes/mugler/Alien,2026-11-23

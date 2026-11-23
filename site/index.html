@@ -476,10 +476,10 @@ async function recommend(req) {
   return {
     relaxed, reset_shown: reset,
     results: picked.map(c => {
-      const [name, brand, accords, noteList, g, count] = ITEMS[c.i];
+      const [name, brand, accords, noteList, g, count, estimated, keyHash] = ITEMS[c.i];
       let best = 0;                                         // strongest weighted trait → "fits your romantic side"
       for (let k = 1; k < T; k++) if (out.traitVec[k] * c.aff[k] > out.traitVec[best] * c.aff[best]) best = k;
-      return { id: c.i, name, brand, accords, notes: noteList, gender: GENDER_CODE[g], ratingCount: count,
+      return { id: c.i, keyHash, name, brand, accords, notes: noteList, gender: GENDER_CODE[g], ratingCount: count, estimated: !!estimated,
                match: c.match, score: c.score, topTrait: TRAITS[best] };
     }),
   };
@@ -1145,7 +1145,8 @@ function addAIMessage(m) {
 /* "Very popular · 2,633 ratings · Men's" — tells the user how mainstream a pick is. */
 function popularityBadge(p) {
   const [label, cls] = p.count >= 500 ? ["Much loved", "hot"] : p.count >= 100 ? ["Well known", "pop"] : ["Hidden gem", "gem"];
-  const ratings = p.count > 0 ? ` · ${p.count.toLocaleString()} ratings` : "";
+  // Real counts are shown; counts the dataset was missing are estimated, and we say so.
+  const ratings = p.estimated ? " · rating count estimated" : p.count > 0 ? ` · ${p.count.toLocaleString()} ratings` : "";
   return el("div", `badge ${cls}`, `${label}${ratings} · ${GENDER_LABEL[p.gender]}`);
 }
 
@@ -1158,7 +1159,7 @@ function likeButton(p) {
     b.disabled = true;
     b.textContent = "Saving…";
     try {
-      await sendFeedback({ traits: S.w, gender: S.gender, item_id: p.id });
+      await sendFeedback({ traits: S.w, gender: S.gender, key_hash: p.keyHash });   // stable across model rebuilds
       b.textContent = "Noted — thank you. This teaches the model.";
       b.classList.add("liked");
     } catch {

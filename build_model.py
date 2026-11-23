@@ -154,8 +154,16 @@ def build():
     # Display data per id + note vocabulary (notes used by >= 20 fragrances) for the chat's parser.
     from collections import Counter
     note_counts = Counter(nt.lower() for it in items for nt in it["notes"])
+    # Stable ids for feedback: must be unique, or a like could be credited to the wrong fragrance.
+    from train import key_hash
+    hashes = [key_hash(it["key"]) for it in items]
+    assert len(set(hashes)) == len(hashes), "fragrance key hash collision — switch to a 64-bit hash"
     (OUT / "items.json").write_text(json.dumps(
-        [[it["name"], it["brand"], it["accords"][:5], it["notes"][:5], it["gender"][0], it["ratingCount"]] for it in items],
+        # [name, brand, accords, notes, gender, ratings, estimated?, keyHash]
+        #   estimated? 1 = rating count is an estimate (the page shows "estimated" instead of a number)
+        #   keyHash    stable id of the fragrance, sent back with "I'd wear this" feedback
+        [[it["name"], it["brand"], it["accords"][:5], it["notes"][:5], it["gender"][0], it["ratingCount"],
+          int(it.get("ratingSource") == "estimated"), hashes[i]] for i, it in enumerate(items)],
         ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     (OUT / "config.json").write_text(json.dumps(
         {"traits": traits, "accords": accords, "genders": GENDERS, "top_k": int(min(TOP_K, N)),
@@ -197,10 +205,17 @@ def verify(traits, accords, items, E, POP, count, P, dom):
         ref = scored.argsort()[::-1][:5]
         got = out[0][:5]
         # Same items in the same order, OR any swap is a float32 near-tie (score gap < 1e-5).
-        same = list(got) == list(ref) or (set(got) == set(ref) and np.abs(scored[got] - scored[ref]).max() < 1e-5)
+        # Same items in the same order, OR equal scores position by position (float32 ties may swap,
+        # even across the top-5 cut-off).
+        same = list(got) == list(ref) or np.abs(scored[got] - scored[ref]).max() < 1e-5
         print(f"case {case}: onnx {got.tolist()}  numpy {ref.tolist()}  "
               f"max score diff {np.abs(out[1][:5] - scored[got]).max():.1e}  {'OK' if same else 'MISMATCH'}")
 
 
 if __name__ == "__main__":
     verify(*build())
+    # Quality gate: score the freshly built model on the hand-written personas (eval/personas.json).
+    # Fails (exit 1) on a broken rule or a drop vs eval/baseline.json. Accept an intended change with:
+    #   python evaluate.py --update-baseline
+    import evaluate
+    raise SystemExit(evaluate.main())
