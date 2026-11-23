@@ -22,7 +22,11 @@ await page.route("**/*", async route => {
   const res = await route.fetch();
   const type = route.request().resourceType();
   const headers = { ...res.headers() };
-  if (type === "document" || route.request().url().endsWith("worker.js")) headers["content-security-policy"] = CSP;
+  const url = route.request().url();
+  if (type === "document" || url.endsWith("worker.js")) headers["content-security-policy"] = CSP;
+  // python's test server takes MIME types from the OS; set the two the engine needs (Netlify does this itself)
+  if (url.endsWith(".mjs")) headers["content-type"] = "text/javascript";
+  if (url.endsWith(".wasm")) headers["content-type"] = "application/wasm";
   await route.fulfill({ response: res, headers });
 });
 page.on("pageerror", e => problems.push(`page error: ${e.message}`));
