@@ -366,129 +366,101 @@
   </div>
 </div>
 
-<script src="vendor/ort/ort.wasm.min.js"></script>
 <script>
 /* ==================================================================
-   1. THE AI MODEL — runs right here, in the visitor's browser
-   recommender.onnx (built by build_model.py) is downloaded once and run
-   with ONNX Runtime Web (vendor/ort). It holds the trained personality
-   encoder AND the whole catalogue, and does the scoring, filtering and
-   ranking. Answers never leave the device; only "I'd wear this" clicks
-   are sent to /api/feedback (a Netlify Function) for retraining.
+   1. THE AI MODEL — runs in a background thread (worker.js)
+   recommender.onnx holds the trained personality encoder AND the whole
+   catalogue, and does the scoring, filtering and ranking. The worker
+   loads it with ONNX Runtime Web, so the page stays smooth. Answers
+   never leave the device; only "I'd wear this" clicks (/api/feedback)
+   and anonymous health stats (/api/log) are sent.
    ================================================================== */
-let TRAITS = ["adventurous", "romantic", "professional", "playful", "mysterious", "calm", "confident", "cozy"];
+let TRAITS = ["adventurous", "romantic", "professional", "playful", "mysterious", "calm", "confident", "cozy", "modern", "clean"];
 let NOTE_VOCAB = [];                 // note names the text parser can recognise ("vanilla", "rose"…)
-let ACCORDS = [], ITEMS = [], NOTES_LOWER = [], SESSION = null;
-const GENDER_CODE = { w: "women", m: "men", u: "unisex" };
-const ALLOWED = { women: [1, 0, 1], men: [0, 1, 1], unisex: [0, 0, 1] };   // [women, men, unisex] may be returned
+let ACCORDS = [];
 
 class ModelError extends Error {
   constructor(message) { super(message); this.status = 0; }
 }
 
 const setStatus = text => document.querySelectorAll(".status").forEach(s => { s.textContent = text; });
+const IS_LOCAL = location.protocol === "file:" || ["localhost", "127.0.0.1"].includes(location.hostname);
 
-function okJson(r) {
-  if (!r.ok) throw new ModelError(`HTTP ${r.status} for ${r.url}`);
-  return r.json();
-}
-
-/* Start downloading the model immediately, while the user answers the first questions. */
-const modelReady = (async () => {
-  if (location.protocol === "file:") {
-    throw new ModelError("Browsers can't load the model from a file:// page. Run: python -m http.server 8080 -d site  — then open http://localhost:8080");
+/* ---- Anonymous health logging (load time, failures, errors). Never sends answers. ---- */
+const STATS = { recCount: 0, recMs: 0 };
+function logEvent(event) {
+  if (IS_LOCAL) return;                                // don't pollute the logs while developing
+  const body = JSON.stringify({ ...event, v: 1, ua: navigator.userAgent.slice(0, 160) });
+  if (!(navigator.sendBeacon && navigator.sendBeacon("/api/log", new Blob([body], { type: "text/plain" })))) {
+    fetch("/api/log", { method: "POST", body, keepalive: true }).catch(() => {});
   }
-  ort.env.wasm.wasmPaths = new URL("vendor/ort/", location.href).href;
-  ort.env.wasm.numThreads = 1;       // multi-threading needs special server headers; one thread is plenty here
-  const [config, items, session] = await Promise.all([
-    fetch("model/config.json").then(okJson),
-    fetch("model/items.json").then(okJson),
-    ort.InferenceSession.create("model/recommender.onnx", { executionProviders: ["wasm"] }),
-  ]);
-  TRAITS = config.traits;
-  ACCORDS = config.accords;
-  NOTE_VOCAB = config.notes.slice().sort((a, b) => b.length - a.length);   // longest first: "pink pepper" before "pepper"
-  ITEMS = items;                                                           // [name, brand, accords, notes, g, ratings]
-  NOTES_LOWER = items.map(it => it[3].map(n => n.toLowerCase()));
-  SESSION = session;
-})();
+}
+addEventListener("error", e => logEvent({ type: "error", msg: String(e.message).slice(0, 300), src: `${e.filename}:${e.lineno}` }));
+addEventListener("unhandledrejection", e => logEvent({ type: "error", msg: String(e.reason && e.reason.message || e.reason).slice(0, 300) }));
+addEventListener("pagehide", () => {
+  if (STATS.recCount) logEvent({ type: "perf", n: STATS.recCount, avgMs: Math.round(STATS.recMs / STATS.recCount) });
+});
+
+/* ---- The model worker ---- */
+let worker = null, nextId = 0;
+const pending = new Map();
+const modelReady = new Promise((resolve, reject) => {
+  if (location.protocol === "file:") {
+    reject(new ModelError("Browsers can't load the model from a file:// page. Run: python -m http.server 8080 -d site  — then open http://localhost:8080"));
+    return;
+  }
+  const t0 = performance.now();
+  worker = new Worker("worker.js");
+  worker.onmessage = e => {
+    const m = e.data;
+    if (m.type === "ready") {
+      TRAITS = m.traits; ACCORDS = m.accords;
+      NOTE_VOCAB = m.notes.slice().sort((a, b) => b.length - a.length);   // longest first: "pink pepper" before "pepper"
+      logEvent({ type: "load", ok: true, ms: Math.round(performance.now() - t0), workerMs: m.loadMs });
+      resolve();
+    } else if (m.type === "failed") {
+      logEvent({ type: "load", ok: false, msg: String(m.error).slice(0, 300) });
+      reject(new ModelError(m.error));
+    } else if (pending.has(m.id)) {
+      const p = pending.get(m.id); pending.delete(m.id);
+      m.ok ? p.resolve(m.result) : p.reject(new ModelError(m.error));
+    }
+  };
+  worker.onerror = e => { logEvent({ type: "load", ok: false, msg: String(e.message).slice(0, 300) }); reject(new ModelError(e.message)); };
+});
 modelReady
   .then(() => setStatus("Model ready · runs on your device"))
   .catch(e => { console.error(e); setStatus("The model couldn't load"); });
 
-/* One pass through the ONNX model. */
-async function runModel(traits, gender, unique, accordPref, must, avoid) {
-  const T = TRAITS.length, A = ACCORDS.length;
-  const t = Float32Array.from(TRAITS, k => Math.max(0, +traits[k] || 0));
-  if (!t.some(v => v > 0)) t.fill(1);                      // no personality info yet → neutral blend
-  const vec = f => Float32Array.from(ACCORDS, f);
-  const out = await SESSION.run({
-    traits:      new ort.Tensor("float32", t, [1, T]),
-    allowed:     new ort.Tensor("float32", Float32Array.from(ALLOWED[gender] || [1, 1, 1]), [1, 3]),
-    unique:      new ort.Tensor("float32", Float32Array.of(unique ? 1 : 0), [1]),
-    accord_pref: new ort.Tensor("float32", vec(a => +accordPref[a] || 0), [1, A]),
-    must:        new ort.Tensor("float32", vec(a => (must.includes(a) ? 1 : 0)), [1, A]),
-    avoid:       new ort.Tensor("float32", vec(a => (avoid.includes(a) ? 1 : 0)), [1, A]),
-  });
-  return {
-    ids: Array.from(out.ids.data, Number),                 // int64 → BigInt in JS → plain numbers
-    scores: out.scores.data, matches: out.matches.data,
-    affinity: out.trait_affinity.data, nCons: out.n_constrained.data[0], traitVec: t,
-  };
+function callModel(type, payload) {
+  return modelReady.then(() => new Promise((resolve, reject) => {
+    const id = ++nextId;
+    pending.set(id, { resolve, reject });
+    worker.postMessage({ id, type, payload });
+  }));
 }
 
-/* Everything around the model: relax impossible wishes, re-rank by notes, skip what was shown. */
 async function recommend(req) {
-  try { await modelReady; } catch (e) { throw e instanceof ModelError ? e : new ModelError(String(e)); }
+  const res = await callModel("recommend", req);
+  STATS.recCount++; STATS.recMs += res.ms;
+  return res;
+}
+const searchFragrance = text => callModel("search", text);
 
-  // Hard wishes, oldest first. If fewer than top_k fragrances satisfy them all, drop the OLDEST
-  // and run again — the user's most recent request always wins.
-  let cons = req.constraints.filter(c => ACCORDS.includes(c.accord));
-  let out;
-  while (true) {
-    out = await runModel(req.traits, req.gender, req.unique, req.accord_prefs,
-      cons.filter(c => c.type === "must").map(c => c.accord),
-      cons.filter(c => c.type === "avoid").map(c => c.accord));
-    if (out.nCons >= req.top_k || cons.length === 0) break;
-    cons = cons.slice(1);
-  }
-  const relaxed = req.constraints.filter(c => !cons.includes(c));
-
-  // Candidates = every fragrance passing the filters (the model already ranked them).
-  // Notes the user mentioned ("with vanilla", "no rose") nudge the order.
-  const T = TRAITS.length;
-  const notes = Object.entries(req.notes).map(([k, v]) => [k.toLowerCase(), v]);
-  const n = Math.max(1, Math.min(out.nCons, out.ids.length));
-  const cands = [];
-  for (let j = 0; j < n; j++) {
-    const i = out.ids[j];
-    const nb = notes.reduce((s, [note, v]) => s + (NOTES_LOWER[i].includes(note) ? 0.1 * v : 0), 0);
-    cands.push({ i, score: out.scores[j] + nb, match: out.matches[j] + nb, aff: out.affinity.subarray(j * T, (j + 1) * T) });
-  }
-  cands.sort((a, b) => b.score - a.score);
-
-  // Skip fragrances already shown; when everything has been shown, start over.
-  const excl = new Set(req.exclude);
-  const fresh = cands.filter(c => !excl.has(c.i));
-  const reset = fresh.length < req.top_k && cands.length >= req.top_k;
-  const picked = (reset ? cands : fresh).slice(0, req.top_k);
-
-  return {
-    relaxed, reset_shown: reset,
-    results: picked.map(c => {
-      const [name, brand, accords, noteList, g, count, estimated, keyHash] = ITEMS[c.i];
-      let best = 0;                                         // strongest weighted trait → "fits your romantic side"
-      for (let k = 1; k < T; k++) if (out.traitVec[k] * c.aff[k] > out.traitVec[best] * c.aff[best]) best = k;
-      return { id: c.i, keyHash, name, brand, accords, notes: noteList, gender: GENDER_CODE[g], ratingCount: count, estimated: !!estimated,
-               match: c.match, score: c.score, topTrait: TRAITS[best] };
-    }),
-  };
+/* ---- "I'd wear this" -> Netlify Function. One random id per browser tab lets the server ignore
+   repeated clicks and cap floods, without identifying anyone. ---- */
+const SESSION_ID = sessionStorage.getItem("sm-sid") || (() => {
+  const id = crypto.randomUUID(); sessionStorage.setItem("sm-sid", id); return id;
+})();
+async function sendFeedback(body) {
+  const r = await fetch("/api/feedback", { method: "POST", headers: { "Content-Type": "application/json" },
+                                           body: JSON.stringify({ ...body, sid: SESSION_ID }) });
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
 }
 
-/* "I'd wear this" → Netlify Function (netlify/functions/feedback.mjs). */
-async function sendFeedback(body) {
-  const r = await fetch("/api/feedback", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+/* ---- Offline + instant repeat visits (sw.js caches the model and engine) ---- */
+if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {
+  addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
 }
 
 /* ==================================================================
@@ -504,6 +476,8 @@ const TRAIT_WORDS = {
   mysterious:   ["mysterious", "mystery", "dark", "enigmatic", "seductive", "introvert", "secretive"],
   calm:         ["calm", "relax", "chill", "peace", "quiet", "zen", "gentle", "serene", "laid back", "laid-back"],
   confident:    ["confident", "power", "leader", "strong", "elegant", "classy", "charismatic", "boss", "bold"],
+  modern:       ["modern", "sporty", "sleek", "minimal", "urban", "trendy", "blue fragrance"],
+  clean:        ["clean", "musky", "soapy", "laundry", "airy", "skin scent", "pure", "fresh shower"],
   cozy:         ["cozy", "cosy", "comfort", "homebody", "snug", "warm-hearted", "caring", "kind"],
 };
 
@@ -648,7 +622,7 @@ const QUIZ = [
   {
     q: "Where will you wear your fragrance most?",
     options: [
-      { label: "Work and the office",     keys: ["work", "office", "job", "school", "uni", "class", "meeting"], traits: { professional: 1, calm: .3 }, ack: "Office-ready it is" },
+      { label: "Work and the office",     keys: ["work", "office", "job", "school", "uni", "class", "meeting"], traits: { professional: 1, modern: .3, clean: .3 }, ack: "Office-ready it is" },
       { label: "Dates and nights out",    keys: ["date", "night", "evening", "club", "going out", "dinner"], traits: { mysterious: .6, romantic: .6 }, ack: "After-dark appeal" },
       { label: "Everyday, casual",        keys: ["every", "daily", "casual", "all", "always", "anywhere"], traits: { calm: .6, playful: .4 }, ack: "An everyday companion" },
       { label: "Special occasions",       keys: ["special", "occasion", "event", "wedding", "gala", "formal"], traits: { confident: .8, mysterious: .4 }, ack: "Something to make an entrance" },
@@ -666,7 +640,8 @@ const QUIZ = [
   {
     q: "Last one! How should your scent feel?",
     options: [
-      { label: "Fresh and clean",     keys: ["fresh", "clean", "light", "citrus", "crisp"], traits: { professional: .5, calm: .5 }, accords: { Fresh: 1, Citrus: .6 }, ack: "Fresh and clean" },
+      { label: "Fresh and clean",     keys: ["fresh", "light", "citrus", "crisp", "sporty", "blue"], traits: { professional: .4, modern: .3, calm: .3 }, accords: { Fresh: 1, Citrus: .5 }, ack: "Fresh and clean" },
+      { label: "Soft and musky",      keys: ["musk", "musky", "soapy", "laundry", "airy", "skin", "powdery"], traits: { clean: 1, romantic: .2 }, accords: { Powdery: .8 }, ack: "Soft and musky — close to the skin" },
       { label: "Sweet and comforting", keys: ["sweet", "comfort", "vanilla", "gourmand", "sugar"], traits: { cozy: .7, playful: .3 }, accords: { Sweet: 1, Gourmand: .6 }, ack: "Sweet and comforting" },
       { label: "Warm and spicy",      keys: ["spic", "warm", "pepper", "hot"], traits: { adventurous: .6, confident: .4 }, accords: { Spicy: 1 }, ack: "Warm and spicy" },
       { label: "Soft and floral",     keys: ["floral", "flower", "soft", "rose", "pretty"], traits: { romantic: 1 }, accords: { Floral: 1, Powdery: .4 }, ack: "Soft and floral" },
@@ -676,8 +651,8 @@ const QUIZ = [
 ];
 
 // Names used to build the "scent personality" title, e.g. "The Cozy Dreamer".
-const ADJ  = { romantic: "Romantic", adventurous: "Adventurous", professional: "Polished", playful: "Playful", mysterious: "Mysterious", calm: "Serene", confident: "Bold", cozy: "Cozy" };
-const NOUN = { romantic: "Romantic", adventurous: "Explorer", professional: "Professional", playful: "Free Spirit", mysterious: "Enigma", calm: "Dreamer", confident: "Icon", cozy: "Homebody" };
+const ADJ  = { romantic: "Romantic", adventurous: "Adventurous", professional: "Polished", playful: "Playful", mysterious: "Mysterious", calm: "Serene", confident: "Bold", cozy: "Cozy", modern: "Modern", clean: "Pure" };
+const NOUN = { romantic: "Romantic", adventurous: "Explorer", professional: "Professional", playful: "Free Spirit", mysterious: "Enigma", calm: "Dreamer", confident: "Icon", cozy: "Homebody", modern: "Trailblazer", clean: "Minimalist" };
 
 // Buttons shown after results (the popular/unique toggle flips depending on the current mode).
 function resultQuick() {
@@ -708,6 +683,7 @@ function resetState() {
     lastPicks: [],
     relaxed: [],                        // constraints we had to drop on the last pick
     confused: 0,                        // unrecognised answers in a row
+    anchor: null,                       // "I love X": {id, name, brand, gender} -> recommend things like X
   };
 }
 
@@ -742,6 +718,7 @@ async function pickThree(excludeShown) {
     traits: S.w, gender: S.gender, unique: S.unique,
     accord_prefs: S.accords, constraints: S.constraints, notes: S.notes,
     exclude: excludeShown ? [...S.shown] : [], top_k: 3,
+    anchor: S.anchor ? S.anchor.id : null,          // "similar to X" blends X's scent fingerprint into the query
   };
   let res = await recommend(req);
   // If a tweak produced exactly the same three, ask for different ones.
@@ -845,7 +822,42 @@ async function respond(text, payload = {}) {
     return [{ text: "My pleasure! Happy sniffing — come back any time you want to explore a new side of yourself.", quick: resultQuick() }];
   }
 
+  if (payload.clearAnchor || /\b(forget|clear|drop|stop) (that|it|the similar|similar|the reference)\b/.test(t)) {
+    S.anchor = null;
+    return [{ text: "Done — back to picks based on your personality alone.", picks: await pickThree(false), quick: resultQuick() }];
+  }
+
+  // ----- "I love Dior Sauvage" / "something like Aventus": find it and suggest similar fragrances -----
+  const love = t.match(/\b(?:i (?:really )?(?:like|love|adore|wear|own|have)|similar to|something like|alternatives? to|dupes? (?:of|for)|like my)\s+(.{3,60})$/);
+  if (love) {
+    const query = love[1].replace(/[.!?]+$/, "").replace(/^(the|my|a)\s+/, "");
+    // "I love spicy" / "I like vanilla" are preferences, not fragrance names.
+    const notAName = /\b(no idea|not sure|idk|whatever|no preference|nothing|anything|everything|it|that|this)\b/.test(query);
+    if (!notAName && !understand(query).any && !detectGender(query)) {
+      const hits = await searchFragrance(query);
+      if (hits.length) return [await similarMsg(hits[0], hits.slice(1, 3))];
+      return [{ text: `I couldn't find “${query}” in my catalogue — try the brand and name, like “Dior Sauvage” or “Chanel Bleu”.`,
+                quick: S.phase === "quiz" ? questionMsg().quick : resultQuick() }];
+    }
+  }
+
   return S.phase === "quiz" ? await quizTurn(t, payload) : await resultsTurn(t);
+}
+
+/* Anchor the recommendations on a fragrance the person already loves. */
+async function similarMsg(hit, alsoMatched) {
+  S.anchor = hit;
+  if (!S.gender && hit.gender !== "unisex") S.gender = hit.gender;     // someone who loves a men's scent likely wants men's
+  S.phase = "results";
+  S.shown.clear();
+  const picks = await pickThree(false);
+  const others = alsoMatched.length ? `\n(If you meant ${alsoMatched.map(h => h.name).join(" or ")}, type its full name.)` : "";
+  return {
+    text: `Found it — ${hit.name} by ${hit.brand}. These share its scent fingerprint${S.unique ? " (hidden gems)" : ""}:${others}`,
+    picks,
+    outro: "Tell me what to change — “fresher”, “less sweet”, “something unique” — or say “forget that” to go back to your personality picks.",
+    quick: [...resultQuick().slice(0, -1), { label: `Forget ${hit.name.split(" ").slice(0, 2).join(" ")}`, payload: { clearAnchor: true }, secondary: true }],
+  };
 }
 
 /* ----- During the quiz ----- */
@@ -1181,6 +1193,7 @@ function renderNotebook() {
     ["For", S.gender ? GENDER_LABEL[S.gender] : (S.q > 0 ? "Anyone" : null)],
     ["Leaning", prof ? prof.traits.map(t => t.name.toLowerCase()).join(", ") : null],
     ["Wishes", wishes.length ? wishes.join(", ") : null],
+    ...(S.anchor ? [["Similar to", `${S.anchor.name} (${S.anchor.brand})`]] : []),
     ["Showing", S.unique ? "hidden gems" : "much-loved first"],
   ];
   dl.replaceChildren(...rows.flatMap(([k, v]) => [el("dt", null, k), el("dd", v ? null : "empty", v || "—")]));

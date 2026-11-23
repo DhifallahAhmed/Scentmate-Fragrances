@@ -35,7 +35,7 @@ HERE = Path(__file__).parent
 DATA = Path(sys.argv[1] if len(sys.argv) > 1 else HERE / "data" / "fragrances_clean.json")
 OVERRIDES = HERE / "data" / "rating_overrides.csv"
 
-MEN   = re.compile(r"\b(pour homme|homme|for men|men|man|him|uomo|masculin\w*|hombre|herren|gentleman|boy|mr)\b", re.I)
+MEN   = re.compile(r"\b(pour homme|homme|for men|men|man|him|uomo|masculin\w*|hombre|herren|gentleman|boy|mr|m[aâ]le)\b", re.I)
 WOMEN = re.compile(r"\b(pour femme|femme|for women|women|woman|her|donna|f[eé]minin\w*|mujer|lady|girl|miss|she|damen)\b", re.I)
 
 def gender_from_name(name: str):
@@ -49,18 +49,22 @@ def tier(count: float) -> str:
 
 # ------------------------------------------------------------------ ratings: web overrides
 def apply_overrides(recs) -> int:
-    """Fill missing counts from data/rating_overrides.csv (exact brand + name). Never overwrites dataset counts."""
+    """Fill missing counts from data/rating_overrides.csv. Matches on the stable `key` (falls back to exact
+    brand + name). Never overwrites a count that came with the dataset — except a copied one (see clean.py)."""
     if not OVERRIDES.exists():
         return 0
     lines = [l for l in OVERRIDES.read_text(encoding="utf-8").splitlines() if l.strip() and not l.startswith("#")]
-    index = {(r["brand"], r["name"]): r for r in recs}
+    by_key = {r["key"]: r for r in recs}
+    by_name = {(r["brand"], r["name"]): r for r in recs}
     applied = 0
     for row in csv.DictReader(lines):
-        r = index.get((row["brand"], row["name"]))
+        r = by_key.get(row.get("key") or "") or by_name.get((row["brand"], row["name"]))
         if r is None:
-            print(f"  override not matched (check spelling): {row['brand']} | {row['name']}")
-        elif r.get("ratingSource") in (None, "estimated") and not r["ratingCount"] or r.get("ratingSource") == "web":
+            print(f"  override not matched (check key/spelling): {row.get('key')} | {row['brand']} | {row['name']}")
+            continue
+        if not r["ratingCount"] or r.get("ratingSource") == "web":
             r["ratingCount"], r["ratingSource"] = int(row["ratingCount"]), "web"
+            r.pop("ratingNote", None)
             applied += 1
     return applied
 
@@ -126,8 +130,46 @@ def estimate_missing(recs):
     return dict(zip(uidx.tolist(), est.tolist())), report
 
 
+# ------------------------------------------------------------------ accords from notes
+def impute_accords(recs):
+    """~9,800 fragrances list notes but no accords. Learn notes -> accords (one classifier per accord) from
+    fragrances that have both, check it on held-out ones, then fill the gaps (accordsSource = "imputed").
+    Accords are ordered by confidence, because the first accords count most in the model."""
+    from sklearn.multiclass import OneVsRestClassifier
+    from sklearn.preprocessing import MultiLabelBinarizer
+    from sklearn.metrics import f1_score
+    note_tokens = lambda r: [_norm(n) for n in r["topNotes"] + r["middleNotes"] + r["baseNotes"]]
+    has_notes = [bool(r["topNotes"] or r["middleNotes"] or r["baseNotes"]) for r in recs]
+    both = [i for i, r in enumerate(recs) if has_notes[i] and r["mainAccords"]]
+    todo = [i for i, r in enumerate(recs) if has_notes[i] and not r["mainAccords"]]
+    if not todo:
+        return 0, "nothing to impute"
+    vec = TfidfVectorizer(analyzer=note_tokens, min_df=3)
+    X = vec.fit_transform([recs[i] for i in both])
+    mlb = MultiLabelBinarizer()
+    Y = mlb.fit_transform([[a for a in recs[i]["mainAccords"] if a != "Main Accords"] for i in both])
+    clf = lambda: OneVsRestClassifier(LogisticRegression(max_iter=1000, C=4.0), n_jobs=-1)
+    Xtr, Xte, Ytr, Yte = train_test_split(X, Y, test_size=0.2, random_state=0)
+    P = clf().fit(Xtr, Ytr).predict_proba(Xte)
+    best = max(((f1_score(Yte, (P >= t).astype(int), average="micro"), t) for t in (0.25, 0.3, 0.35, 0.4, 0.45, 0.5)))
+    report = f"held-out micro-F1 {best[0]:.2f} at threshold {best[1]}"
+    model = clf().fit(X, Y)
+    P = model.predict_proba(vec.transform([recs[i] for i in todo]))
+    filled = 0
+    for i, p in zip(todo, P):
+        order = [k for k in np.argsort(-p) if p[k] >= best[1]][:5] or [int(np.argmax(p))]
+        recs[i]["mainAccords"] = [mlb.classes_[k] for k in order]
+        recs[i]["accordsSource"] = "imputed"
+        filled += 1
+    return filled, report
+
+
 def main():
     recs = json.loads(DATA.read_text(encoding="utf-8"))
+    filled, report = impute_accords(recs)
+    print(f"accords imputed from notes: {filled} ({report})")
+    for r in recs:                     # flag fragrances whose fingerprint rests on accords alone
+        r["lowInfo"] = not (r["topNotes"] or r["middleNotes"] or r["baseNotes"])
     has_notes = [bool(tokens(r)) for r in recs]
 
     # --- Gender: name labels -> train classifier -> fill the rest

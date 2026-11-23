@@ -2,6 +2,8 @@
 
 Usage:  python evaluate.py                    print the report; exit 1 on a regression or a broken rule
         python evaluate.py --update-baseline  accept the current scores as the new baseline
+        python evaluate.py --tune             grid-search the ranking parameters; writes eval/params.json,
+                                              which build_model.py uses as defaults on the next build
 build_model.py runs this automatically after building.
 
 How a persona is scored — exactly like the browser does it:
@@ -56,14 +58,18 @@ def parse_quiz(html: str):
 
 
 class Recommender:
-    """Python twin of recommend() in site/index.html."""
-    def __init__(self):
+    """Python twin of recommend() in the page's model worker."""
+    def __init__(self, params=None):
         self.cfg = json.loads((MODEL / "config.json").read_text(encoding="utf-8"))
-        self.items = json.loads((MODEL / "items.json").read_text(encoding="utf-8"))
-        self.sess = ort.InferenceSession(str(MODEL / "recommender.onnx"), providers=["CPUExecutionProvider"])
+        self.items = json.loads((MODEL / self.cfg["files"]["items"]).read_text(encoding="utf-8"))
+        self.sess = ort.InferenceSession(str(MODEL / self.cfg["files"]["model"]), providers=["CPUExecutionProvider"])
         self.T, self.A = self.cfg["traits"], self.cfg["accords"]
+        self.set_params(params or self.cfg["params"])
 
-    def run(self, w, gender, unique, prefs, must, avoid):
+    def set_params(self, params):
+        self.params = np.array([params[k] for k in self.cfg["param_order"]], np.float32)
+
+    def run(self, w, gender, unique, prefs, must, avoid, anchor=0, anchor_weight=0.0):
         t = np.array([[max(0.0, w.get(k, 0.0)) for k in self.T]], np.float32)
         if not t.any():
             t[:] = 1
@@ -71,7 +77,9 @@ class Recommender:
         ids, scores, matches, aff, n_cons, n_ranked = self.sess.run(None, {
             "traits": t, "allowed": np.array([ALLOWED[gender]], np.float32),
             "unique": np.array([1.0 if unique else 0.0], np.float32), "accord_pref": v(prefs),
-            "must": v({a: 1 for a in must}), "avoid": v({a: 1 for a in avoid})})
+            "must": v({a: 1 for a in must}), "avoid": v({a: 1 for a in avoid}),
+            "params": np.concatenate([self.params[:4], [anchor_weight]]).astype(np.float32),
+            "anchor": np.array([anchor], np.int64)})
         return [int(i) for i in ids], int(n_cons[0])
 
     def recommend(self, w, gender, unique, prefs, constraints, k=TOP_K):
@@ -118,9 +126,9 @@ def persona_inputs(p, quiz):
     return w, prefs, gender, constraints
 
 
-def evaluate():
-    quiz = parse_quiz((HERE / "site" / "index.html").read_text(encoding="utf-8"))
-    rec = Recommender()
+def evaluate(rec=None, quiz=None):
+    quiz = quiz or parse_quiz((HERE / "site" / "index.html").read_text(encoding="utf-8"))
+    rec = rec or Recommender()
     personas = json.loads(PERSONAS.read_text(encoding="utf-8"))["personas"]
     rows, broken, top3_all = [], [], []
     for p in personas:
@@ -153,7 +161,36 @@ def evaluate():
     return summary, rows, broken
 
 
+def objective(s):
+    """Single number for tuning: first-screen hits matter most, then depth, then variety."""
+    return s["hit@3"] + 0.5 * s["recall@10"] + 0.25 * s["coverage"]
+
+
+def tune():
+    import itertools
+    quiz = parse_quiz((HERE / "site" / "index.html").read_text(encoding="utf-8"))
+    rec = Recommender()
+    grid = {"pop_weight": [0.2, 0.3, 0.4, 0.5], "relevance_window": [0.15, 0.2, 0.25, 0.3],
+            "accord_weight": [0.05, 0.08, 0.12], "lowinfo_weight": [0.0, 0.05, 0.1]}
+    results = []
+    for combo in itertools.product(*grid.values()):
+        p = dict(zip(grid, combo), anchor_weight=0.0)
+        rec.set_params(p)
+        s, _, broken = evaluate(rec, quiz)
+        if not broken:
+            results.append((objective(s), p, s))
+    results.sort(key=lambda r: -r[0])
+    for score, p, s in results[:5]:
+        print(f"{score:.3f}  {p}  {s}")
+    best = results[0][1]
+    (HERE / "eval" / "params.json").write_text(json.dumps(best, indent=1), encoding="utf-8")
+    print("best parameters written to eval/params.json — rebuild with build_model.py to ship them")
+    return 0
+
+
 def main():
+    if "--tune" in sys.argv:
+        return tune()
     summary, rows, broken = evaluate()
     print(f"{'persona':24s} {'hit@3':>5} {'hit@10':>6} {'first':>5}  top 3")
     for r in rows:

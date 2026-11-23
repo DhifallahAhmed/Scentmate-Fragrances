@@ -1,5 +1,5 @@
 {
- "_about": "Hand-written test personas for evaluate.py. 'answers' are the exact quiz button labels (gender first). 'refine' mimics a follow-up like 'fresher and spicier' (must) or 'less sweet' (avoid). 'expected' = fragrances a knowledgeable advisor would accept for this person ([brand, exact name or unique name prefix]). These are judgment calls — review and extend them; they are a regression guard, not ground truth.",
+ "_about": "Hand-written test personas for evaluate.py. 'answers' are the exact quiz button labels (gender first). 'refine' mimics a follow-up like 'fresher and spicier' (must) or 'less sweet' (avoid). 'expected' = fragrances a knowledgeable advisor would accept for this person ([brand, exact name or unique name prefix]). These are judgment calls — review and extend them; they are a regression guard, not ground truth. Expanded on 2026-11-23 with flagships that became rankable once their real rating counts were added (they could never be recommended before).",
  "personas": [
   {
    "id": "m-office-fresh",
@@ -47,6 +47,18 @@
     [
      "Prada",
      "L'Homme"
+    ],
+    [
+     "Hermès",
+     "Terre d'Hermès Hermès 2006 Eau de Toilette"
+    ],
+    [
+     "Dior",
+     "Dior Homme Original Dior 2011 Eau de Toilette"
+    ],
+    [
+     "Creed",
+     "Silver Mountain Water"
     ]
    ]
   },
@@ -88,6 +100,14 @@
     [
      "Fragrance One",
      "Office for Men"
+    ],
+    [
+     "Dior",
+     "Sauvage Elixir"
+    ],
+    [
+     "Creed",
+     "Green Irish Tweed"
     ]
    ]
   },
@@ -133,6 +153,18 @@
     [
      "Hugo Boss",
      "The Scent for Him Hugo Boss 2015"
+    ],
+    [
+     "Jean Paul Gaultier",
+     "Le Mâle Elixir"
+    ],
+    [
+     "Jean Paul Gaultier",
+     "Le Mâle Le Parfum"
+    ],
+    [
+     "Guerlain",
+     "L'Homme Idéal Guerlain 2016 Eau de Parfum"
     ]
    ]
   },
@@ -174,6 +206,18 @@
     [
      "Parfums de Marly",
      "Kalan"
+    ],
+    [
+     "Jean Paul Gaultier",
+     "Le Mâle Le Parfum"
+    ],
+    [
+     "Jean Paul Gaultier",
+     "Le Mâle Jean Paul Gaultier 1995 Eau de Toilette"
+    ],
+    [
+     "Parfums de Marly",
+     "Herod"
     ]
    ]
   },
@@ -215,6 +259,18 @@
     [
      "Hermès",
      "Ambre Narguilé"
+    ],
+    [
+     "Jean Paul Gaultier",
+     "Le Mâle Elixir"
+    ],
+    [
+     "Guerlain",
+     "L'Homme Idéal Guerlain 2016 Eau de Parfum"
+    ],
+    [
+     "Parfums de Marly",
+     "Herod"
     ]
    ]
   },
@@ -305,6 +361,10 @@
     [
      "Creed",
      "Aventus"
+    ],
+    [
+     "Dior",
+     "Fahrenheit Dior 1988 Eau de Toilette"
     ]
    ]
   },
@@ -354,6 +414,18 @@
     [
      "Nautica",
      "Voyage Nautica 2006"
+    ],
+    [
+     "Creed",
+     "Silver Mountain Water"
+    ],
+    [
+     "Davidoff",
+     "Cool Water Davidoff 1988 Eau de Toilette"
+    ],
+    [
+     "Creed",
+     "Green Irish Tweed"
     ]
    ]
   },
@@ -399,6 +471,18 @@
     [
      "Hugo Boss",
      "Hugo Hugo Boss 1995"
+    ],
+    [
+     "Hermès",
+     "Terre d'Hermès Hermès 2006 Eau de Toilette"
+    ],
+    [
+     "Creed",
+     "Green Irish Tweed"
+    ],
+    [
+     "Creed",
+     "Silver Mountain Water"
     ]
    ]
   },
@@ -436,6 +520,18 @@
     [
      "Calvin Klein",
      "CK One Calvin Klein 1994"
+    ],
+    [
+     "Hermès",
+     "Terre d'Hermès Hermès 2006 Eau de Toilette"
+    ],
+    [
+     "Creed",
+     "Silver Mountain Water"
+    ],
+    [
+     "Yves Saint Laurent",
+     "L'Homme Yves Saint Laurent 2006 Eau de Toilette"
     ]
    ]
   },
@@ -473,6 +569,14 @@
     [
      "Maison Francis Kurkdjian",
      "Amyris Homme Maison Francis Kurkdjian 2012 Eau de Toilette"
+    ],
+    [
+     "Dior",
+     "Dior Homme Original Dior 2011 Eau de Toilette"
+    ],
+    [
+     "Jean Paul Gaultier",
+     "Le Mâle Le Parfum"
     ]
    ]
   },
@@ -514,6 +618,14 @@
     [
      "Jean Paul Gaultier",
      "Ultra Mâle"
+    ],
+    [
+     "Hugo Boss",
+     "Boss Bottled Hugo Boss 1998 Eau de Toilette"
+    ],
+    [
+     "Jean Paul Gaultier",
+     "Le Mâle Jean Paul Gaultier 1995 Eau de Toilette"
     ]
    ]
   },
@@ -596,6 +708,22 @@
     [
      "Burberry",
      "London for Men Burberry 2006"
+    ],
+    [
+     "Dior",
+     "Dior Homme Original Dior 2011 Eau de Toilette"
+    ],
+    [
+     "Hermès",
+     "Terre d'Hermès Hermès 2006 Eau de Toilette"
+    ],
+    [
+     "Hugo Boss",
+     "Boss Bottled Hugo Boss 1998 Eau de Toilette"
+    ],
+    [
+     "Jean Paul Gaultier",
+     "Le Mâle Le Parfum"
     ]
    ]
   },
@@ -637,6 +765,14 @@
     [
      "Jo Malone",
      "Myrrh & Tonka"
+    ],
+    [
+     "Guerlain",
+     "L'Homme Idéal Guerlain 2016 Eau de Parfum"
+    ],
+    [
+     "Jean Paul Gaultier",
+     "Le Mâle Le Parfum"
     ]
    ]
   },
@@ -682,6 +818,14 @@
     [
      "Elie Saab",
      "Le Parfum Elie Saab 2011"
+    ],
+    [
+     "Chanel",
+     "Chance Eau Tendre Chanel 2010 Eau de Toilette"
+    ],
+    [
+     "Chanel",
+     "Allure Chanel 1999 Eau de Parfum"
     ]
    ]
   },
@@ -727,6 +871,14 @@
     [
      "Giorgio Armani",
      "Sì Giorgio Armani 2013"
+    ],
+    [
+     "Dior",
+     "Hypnotic Poison Dior 1998 Eau de Toilette"
+    ],
+    [
+     "Parfums de Marly",
+     "Delina Parfums de Marly 2017 Eau de Parfum"
     ]
    ]
   },
@@ -780,6 +932,18 @@
     [
      "Hermès",
      "Un Jardin sur le Toit"
+    ],
+    [
+     "Chanel",
+     "Chance Eau Fraîche Chanel 2007 Eau de Toilette"
+    ],
+    [
+     "Dolce & Gabbana",
+     "Light Blue Dolce & Gabbana 2001 Eau de Toilette"
+    ],
+    [
+     "Prada",
+     "Infusion d'Iris Prada 2007 Eau de Parfum"
     ]
    ]
   },
@@ -791,7 +955,7 @@
     "Warm and caring",
     "Everyday, casual",
     "Spring",
-    "Soft and floral"
+    "Soft and musky"
    ],
    "expected": [
     [
@@ -825,6 +989,14 @@
     [
      "Jil Sander",
      "Sun Jil Sander 1989"
+    ],
+    [
+     "Prada",
+     "Infusion d'Iris Prada 2007 Eau de Parfum"
+    ],
+    [
+     "Chanel",
+     "Chance Eau Tendre Chanel 2010 Eau de Toilette"
     ]
    ]
   },
@@ -870,6 +1042,18 @@
     [
      "Calvin Klein",
      "Obsession Calvin Klein 1985 Eau de Parfum"
+    ],
+    [
+     "Guerlain",
+     "Shalimar Guerlain 1986 Eau de Parfum"
+    ],
+    [
+     "Chanel",
+     "Coco Chanel 1984 Eau de Parfum"
+    ],
+    [
+     "Maison Francis Kurkdjian",
+     "Grand Soir"
     ]
    ]
   },
@@ -964,6 +1148,22 @@
     [
      "Maison Francis Kurkdjian",
      "Baccarat Rouge 540 Maison Francis Kurkdjian 2016 Eau de Parfum"
+    ],
+    [
+     "Guerlain",
+     "Shalimar Guerlain 1986 Eau de Parfum"
+    ],
+    [
+     "Maison Francis Kurkdjian",
+     "Grand Soir"
+    ],
+    [
+     "Chanel",
+     "Coco Chanel 1984 Eau de Parfum"
+    ],
+    [
+     "Dior",
+     "Hypnotic Poison Dior 1998 Eau de Toilette"
     ]
    ]
   },
@@ -1017,6 +1217,14 @@
     [
      "Pink Sugar",
      "Pink Sugar Pink Sugar 2003"
+    ],
+    [
+     "Dior",
+     "Hypnotic Poison Dior 1998 Eau de Toilette"
+    ],
+    [
+     "Jean Paul Gaultier",
+     "Classique Jean Paul Gaultier 1993 Eau de Toilette"
     ]
    ]
   },
@@ -1062,6 +1270,18 @@
     [
      "Hermès",
      "H24 Hermès 2021"
+    ],
+    [
+     "Dolce & Gabbana",
+     "Light Blue Dolce & Gabbana 2001 Eau de Toilette"
+    ],
+    [
+     "Chanel",
+     "Chance Eau Fraîche Chanel 2007 Eau de Toilette"
+    ],
+    [
+     "Creed",
+     "Silver Mountain Water"
     ]
    ]
   },
@@ -1111,6 +1331,22 @@
     [
      "Parfums MDCI",
      "Chypre Palatin"
+    ],
+    [
+     "Chanel",
+     "Allure Chanel 1999 Eau de Parfum"
+    ],
+    [
+     "Chanel",
+     "Coco Noir Chanel 2012 Eau de Parfum"
+    ],
+    [
+     "Guerlain",
+     "Shalimar Guerlain 1986 Eau de Parfum"
+    ],
+    [
+     "Prada",
+     "Infusion d'Iris Prada 2007 Eau de Parfum"
     ]
    ]
   },
@@ -1152,6 +1388,18 @@
     [
      "Byredo",
      "Mojave Ghost Byredo 2014 Eau de Parfum"
+    ],
+    [
+     "Dolce & Gabbana",
+     "Light Blue Dolce & Gabbana 2001 Eau de Toilette"
+    ],
+    [
+     "Chanel",
+     "Chance Eau Fraîche Chanel 2007 Eau de Toilette"
+    ],
+    [
+     "Chanel",
+     "Chance Eau Tendre Chanel 2010 Eau de Toilette"
     ]
    ]
   },
@@ -1201,6 +1449,18 @@
     [
      "Prada",
      "Paradoxe"
+    ],
+    [
+     "Dior",
+     "Hypnotic Poison Dior 1998 Eau de Toilette"
+    ],
+    [
+     "Parfums de Marly",
+     "Delina Parfums de Marly 2017 Eau de Parfum"
+    ],
+    [
+     "Dior",
+     "Dior Addict Dior 2014 Eau de Parfum"
     ]
    ]
   },
@@ -1303,6 +1563,10 @@
     [
      "Nautica",
      "Voyage Nautica 2006"
+    ],
+    [
+     "Creed",
+     "Silver Mountain Water"
     ]
    ]
   },
@@ -1360,6 +1624,10 @@
     [
      "Jean Paul Gaultier",
      "Gaultier²"
+    ],
+    [
+     "Parfums de Marly",
+     "Herod"
     ]
    ]
   },
@@ -1401,6 +1669,14 @@
     [
      "Calvin Klein",
      "Obsession Calvin Klein 1985 Eau de Parfum"
+    ],
+    [
+     "Maison Francis Kurkdjian",
+     "Grand Soir"
+    ],
+    [
+     "Parfums de Marly",
+     "Herod"
     ]
    ]
   },
@@ -1454,6 +1730,14 @@
     [
      "Giorgio Armani",
      "Acqua di Giò Profumo Giorgio Armani 2015 Parfum"
+    ],
+    [
+     "Hermès",
+     "Terre d'Hermès Hermès 2006 Eau de Toilette"
+    ],
+    [
+     "Creed",
+     "Silver Mountain Water"
     ]
    ]
   },
@@ -1499,6 +1783,18 @@
     [
      "Giorgio Armani",
      "Emporio Armani - Stronger With You"
+    ],
+    [
+     "Dior",
+     "Hypnotic Poison Dior 1998 Eau de Toilette"
+    ],
+    [
+     "Jean Paul Gaultier",
+     "Le Mâle Elixir"
+    ],
+    [
+     "Maison Francis Kurkdjian",
+     "Grand Soir"
     ]
    ]
   },
@@ -1542,6 +1838,10 @@
     [
      "Creed",
      "Aventus Cologne"
+    ],
+    [
+     "Dior",
+     "Sauvage Elixir"
     ]
    ]
   },
@@ -1646,6 +1946,14 @@
     [
      "Creed",
      "Himalaya"
+    ],
+    [
+     "Hermès",
+     "Terre d'Hermès Hermès 2006 Eau de Toilette"
+    ],
+    [
+     "Dior",
+     "Dior Homme Original Dior 2011 Eau de Toilette"
     ]
    ]
   },

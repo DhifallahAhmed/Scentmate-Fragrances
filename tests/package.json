@@ -1,0 +1,9 @@
+{
+  "name": "scentmate-tests",
+  "private": true,
+  "type": "module",
+  "description": "Browser smoke test (CI only — not part of the Netlify deploy).",
+  "devDependencies": {
+    "playwright": "^1.65.0"
+  }
+}

@@ -114,11 +114,42 @@ def load(legacy=False):
         rec.update({dst: clean_list(row[src]) for src, dst in LIST_COLUMNS.items()})
         rec["key"] = page_key(row["URL"])
         if not legacy:
+            rec["_value"], rec["_perfumers"] = (row["Rating_Value"] or "").strip(), (row["Perfumers"] or "").strip()
+        if not legacy:
             rec["productType"] = product_type(name, conc, brand)
         records.append(rec)
     if not legacy:
         records = merge_split_pages(records, stats)
+        drop_copied_ratings(records, stats)
+        for r in records:
+            r.pop("_value", None); r.pop("_perfumers", None)
     return records, stats
+
+def drop_copied_ratings(records, stats, min_count=30):
+    """Some rows carry ANOTHER fragrance's rating: a clone/flanker page from a different brand with exactly
+    the same score, count and accords (or perfumers), e.g. Craftoud 'Koh-Kong' = Serge Lutens 'Ambre Sultan'.
+    Keep the rating on the likely original (the brand with more ratings overall — clones mostly come from
+    small/budget brands) and mark the copy's count as unknown, so enrich.py estimates it instead."""
+    from collections import Counter, defaultdict
+    brand_total = Counter()
+    for r in records:
+        brand_total[r["brand"]] += r["ratingCount"] or 0
+    groups = defaultdict(list)
+    for r in records:
+        if (r["ratingCount"] or 0) >= min_count:
+            groups[(r["_value"], r["ratingCount"])].append(r)
+    dropped = 0
+    for members in groups.values():
+        for a in range(len(members)):
+            for b in range(a + 1, len(members)):
+                x, y = members[a], members[b]
+                if x["brand"] == y["brand"] or x["ratingCount"] is None or y["ratingCount"] is None:
+                    continue
+                if (x["mainAccords"] and x["mainAccords"] == y["mainAccords"]) or (x["_perfumers"] and x["_perfumers"] == y["_perfumers"]):
+                    orig, copy = (x, y) if brand_total[x["brand"]] >= brand_total[y["brand"]] else (y, x)
+                    copy["ratingCount"], copy["ratingNote"] = None, f"rating copied from {orig['key']}"
+                    dropped += 1
+    stats["copied ratings removed"] = dropped
 
 def merge_split_pages(records, stats):
     """A few pages were scraped as two partial rows (one with notes, one with accords/ratings).

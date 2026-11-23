@@ -4,12 +4,20 @@
   X-Frame-Options: DENY
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: camera=(), microphone=(), geolocation=()
-  # Everything comes from this site. 'wasm-unsafe-eval' lets the browser compile the
-  # ONNX Runtime WebAssembly engine (vendor/ort) — it does NOT allow JavaScript eval().
-  Content-Security-Policy: default-src 'none'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'; style-src 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
+  # Everything comes from this site. 'wasm-unsafe-eval' lets the browser compile the ONNX Runtime
+  # WebAssembly engine (it does NOT allow JavaScript eval()). worker-src: the model worker + offline worker.
+  Content-Security-Policy: default-src 'none'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'; worker-src 'self'; style-src 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
 
-# The model and engine are large and change rarely: let browsers keep them, but re-check on each visit.
-/model/*
-  Cache-Control: public, max-age=0, must-revalidate
+# Content-hashed / versioned files never change -> cache for a year.
+/model/files/*
+  Cache-Control: public, max-age=31536000, immutable
 /vendor/*
   Cache-Control: public, max-age=31536000, immutable
+
+# Small files that point at the hashed ones -> always re-check.
+/model/config.json
+  Cache-Control: public, max-age=0, must-revalidate
+/worker.js
+  Cache-Control: public, max-age=0, must-revalidate
+/sw.js
+  Cache-Control: no-cache

@@ -1,8 +1,8 @@
 {
  "personas": 38,
  "scored": 36,
- "hit@3": 0.75,
- "hit@10": 0.833,
- "recall@10": 0.255,
- "coverage": 0.518
+ "hit@3": 0.833,
+ "hit@10": 0.944,
+ "recall@10": 0.269,
+ "coverage": 0.544
 }

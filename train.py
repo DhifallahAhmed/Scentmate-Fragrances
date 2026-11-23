@@ -37,14 +37,29 @@ def tokens(rec: dict) -> list[str]:
 
 # --- 2. Trait lexicon: the "labels" this dataset lacks. Hand-authored, tune freely.
 TRAITS = {
-    "adventurous":  {"acc:spicy": 1.0, "acc:smoky": .8, "acc:leathery": .7, "acc:earthy": .6, "acc:aquatic": .4, "note:pink_pepper": .6, "note:vetiver": .5},
-    "romantic":     {"acc:floral": 1.0, "acc:sweet": .6, "acc:powdery": .6, "note:rose": .8, "note:jasmine": .6, "note:vanilla": .5},
-    "professional": {"acc:fresh": .9, "acc:woody": .8, "acc:citrus": .6, "acc:green": .4, "note:bergamot": .6, "note:iris": .5, "note:vetiver": .5},
-    "playful":      {"acc:fruity": 1.0, "acc:gourmand": .8, "acc:sweet": .7, "acc:citrus": .4, "note:raspberry": .5},
-    "mysterious":   {"acc:oriental": 1.0, "acc:resinous": .8, "acc:smoky": .7, "acc:animal": .5, "note:incense": .7, "note:oud": .7},
-    "calm":         {"acc:green": .8, "acc:aquatic": .7, "acc:powdery": .4, "note:lavender": .8, "note:green_tea": .6},
-    "confident":    {"acc:leathery": .8, "acc:woody": .8, "acc:chypre": .7, "acc:fougère": .6, "note:patchouli": .6, "note:tobacco": .5},
-    "cozy":         {"acc:gourmand": .9, "acc:creamy": .8, "acc:sweet": .5, "note:vanilla": .8, "note:tonka_bean": .7, "note:amber": .5},
+    # Each trait = the accords / notes a perfumer would associate with that personality.
+    # Tuned against eval/personas.json (python evaluate.py). Tokens missing from the data print a warning.
+    "adventurous":  {"acc:spicy": .8, "acc:aquatic": .5, "acc:earthy": .5, "acc:woody": .5, "acc:smoky": .4,
+                     "note:pink_pepper": .6, "note:vetiver": .5, "note:grapefruit": .4, "note:cardamom": .4},
+    "romantic":     {"acc:floral": 1.0, "acc:sweet": .6, "acc:powdery": .5, "note:rose": .8, "note:jasmine": .6, "note:vanilla": .5},
+    "professional": {"acc:fresh": .9, "acc:woody": .8, "acc:citrus": .6, "acc:green": .3, "note:bergamot": .6,
+                     "note:iris": .5, "note:vetiver": .5, "note:neroli": .3, "note:lavender": .3},
+    "playful":      {"acc:fruity": 1.0, "acc:sweet": .7, "acc:gourmand": .6, "acc:citrus": .4,
+                     "note:raspberry": .5, "note:pear": .4, "note:apple": .4},
+    # (a broad incense/myrrh/labdanum version pulled niche incense ouds over Tobacco Oud & co. — see eval)
+    "mysterious":   {"acc:oriental": 1.0, "acc:resinous": .8, "acc:smoky": .7, "acc:animal": .5, "note:oud": .7,
+                     "note:frankincense": .3},
+    "calm":         {"acc:green": .7, "acc:aquatic": .6, "acc:powdery": .3, "note:lavender": .8, "note:green_tea": .6, "note:neroli": .4},
+    # crowd-pleasing presence: spicy-sweet-woody (Spicebomb, The One, Code), not dusty leather/chypre
+    "confident":    {"acc:spicy": .8, "acc:woody": .6, "acc:sweet": .5, "acc:oriental": .4, "acc:leathery": .3,
+                     "note:cardamom": .5, "note:tonka_bean": .5, "note:lavender": .4, "note:cinnamon": .4, "note:tobacco": .4},
+    "cozy":         {"acc:gourmand": .9, "acc:creamy": .8, "acc:sweet": .5, "note:vanilla": .8, "note:tonka_bean": .6, "note:amber": .5},
+    # the modern "blue" style: ambroxan + pepper + bergamot (Sauvage, Bleu de Chanel, Y)
+    "modern":       {"acc:synthetic": .9, "acc:fresh": .8, "acc:spicy": .5, "acc:citrus": .4, "note:ambroxan": .9,
+                     "note:pepper": .5, "note:sichuan_pepper": .5, "note:bergamot": .5, "note:ambergris": .4, "note:geranium": .3},
+    # clean / musky / airy: white musk, aldehydes, iris (Lazy Sunday Morning, Narciso For Her, Blanche)
+    "clean":        {"acc:powdery": .8, "acc:fresh": .5, "acc:floral": .3, "note:musk": .8, "note:white_musk": .9,
+                     "note:aldehydes": .7, "note:iris": .5, "note:lily_of_the_valley": .4, "note:cotton_flower": .5, "note:cashmeran": .3},
 }
 TRAIT_NAMES = list(TRAITS)
 
@@ -86,11 +101,22 @@ def load_feedback(recs):
     by_hash = {key_hash(k): i for k, i in by_key.items()}
     legacy_path = HERE / "data" / "legacy_index_keys.json.gz"
     legacy = json.load(gzip.open(legacy_path, "rt", encoding="utf-8")) if legacy_path.exists() else []
-    out, skipped = [], 0
-    for line in fb.read_text(encoding="utf-8").splitlines():
-        if not line.strip():
+    rows = [json.loads(l) for l in fb.read_text(encoding="utf-8").splitlines() if l.strip()]
+    # Flood protection: ignore sessions with implausibly many likes, and count each (session, fragrance) once.
+    per_sid = {}
+    for row in rows:
+        per_sid[row.get("sid")] = per_sid.get(row.get("sid"), 0) + 1
+    seen, out, skipped = set(), [], 0
+    for row in rows:
+        sid = row.get("sid")
+        if sid and per_sid[sid] > 30:
+            skipped += 1
             continue
-        row = json.loads(line)
+        dedup = (sid, row.get("key_hash", row.get("liked_index")))
+        if sid and dedup in seen:
+            skipped += 1
+            continue
+        seen.add(dedup)
         if "key_hash" in row:
             i = by_hash.get(row["key_hash"])
         elif "liked_index" in row and 0 <= row["liked_index"] < len(legacy):
@@ -164,7 +190,8 @@ def main():
                        "gender": r.get("gender"), "popularity": r.get("popularity", 0.0),
                        # best available count: real (dataset / web) or, if unknown, the estimate (see enrich.py)
                        "ratingCount": r["ratingCount"] or r.get("ratingCountEstimated", 0),
-                       "ratingSource": r.get("ratingSource", "dataset")} for r in recs]}
+                       "ratingSource": r.get("ratingSource", "dataset"),
+                       "lowInfo": bool(r.get("lowInfo"))} for r in recs]}
     (OUT / "meta.json").write_text(json.dumps(meta, ensure_ascii=False), encoding="utf-8")
     print("exported to", OUT.resolve())
 
