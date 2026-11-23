@@ -1,3 +1,7 @@
+# Node (Netlify Function dependencies are installed by Netlify)
+node_modules/
+package-lock.json
+
 # Python
 __pycache__/
 *.pyc
@@ -12,8 +16,7 @@ artifacts/
 data/*.json
 !data/.gitkeep
 
-# Runtime data written by the API (rate-limit DB, collected feedback)
-hf_space/data/
+# Exported feedback / local databases
 *.db
 feedback.jsonl
 

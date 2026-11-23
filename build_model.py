@@ -1,6 +1,7 @@
 """build_model.py - fuse the trained pieces + the whole fragrance catalogue into ONE ONNX model.
 
-Run after train.py (needs artifacts/). Writes hf_space/model/:
+Run after train.py (needs artifacts/). Writes site/model/ — the browser downloads and runs it
+(ONNX Runtime Web), so no server is needed:
   recommender.onnx  the full recommender (encoder + catalogue + filtering + ranking + top-K)
   items.json        display data for each fragrance id (name, brand, accords, notes, gender, ratings)
   config.json       trait / accord order expected by the model inputs, plus the note vocabulary
@@ -24,14 +25,14 @@ import onnxruntime as ort
 from onnx import TensorProto, helper, numpy_helper
 
 ART = Path("artifacts")
-OUT = Path("hf_space/model")
+OUT = Path("site/model")
 
 # Ranking rules
 POPULAR_MIN, UNIQUE_MAX = 100, 50
 POP_WEIGHT, RELEVANCE_WINDOW, ACCORD_WEIGHT = 0.5, 0.25, 0.08
 DOMINANCE = [1.0, 0.85, 0.7, 0.55, 0.4]          # weight of an accord by its position in the list
 GENDERS = ["women", "men", "unisex"]
-TOP_K = 100                                     # candidates returned; the server re-ranks/trims
+TOP_K = 100                                     # candidates returned; the page re-ranks/trims
 
 
 def load_mlp():
@@ -73,15 +74,22 @@ def build():
 
     f = lambda v: np.array(v, np.float32)
     i64 = lambda v: np.array(v, np.int64)
-    consts = {"W1": W1, "b1": b1, "W2": W2, "b2": b2, "E": E, "D": D, "P": P, "G": G, "QT": QT.astype(np.float32),
+    # Size for the web: the two big matrices are stored as float16 (cast back to float32 inside the
+    # graph) and accord PRESENCE is derived from dominance (P = D > 0) instead of being stored.
+    # 18.7 MB -> ~8 MB. Verification below uses the same rounded values, so results must match exactly.
+    E16, D16 = E.astype(np.float16), D.astype(np.float16)
+    consts = {"W1": W1, "b1": b1, "W2": W2, "b2": b2, "E16": E16, "D16": D16, "G": G, "QT": QT.astype(np.float32),
               "POP": POP, "BAND_POP": BAND_POP, "BAND_DIFF": BAND_DIFF,
-              "eps": f(1e-9), "one": f(1.0), "half": f(0.5), "big": f(1e4), "hundred": f(100.0),
+              "eps": f(1e-9), "zero": f(0.0), "one": f(1.0), "half": f(0.5), "big": f(1e4), "hundred": f(100.0),
               "w_acc": f(ACCORD_WEIGHT), "w_pop": f(POP_WEIGHT), "window": f(RELEVANCE_WINDOW),
               "ax0": i64([0]), "ax1": i64([1]), "K": i64([min(TOP_K, N)])}
     inits = [numpy_helper.from_array(v, k) for k, v in consts.items()]
 
     n = helper.make_node
     nodes = [
+        # Unpack the catalogue: float16 -> float32, presence = dominance > 0.
+        n("Cast", ["E16"], ["E"], to=TensorProto.FLOAT), n("Cast", ["D16"], ["D"], to=TensorProto.FLOAT),
+        n("Greater", ["D", "zero"], ["P_b"]), n("Cast", ["P_b"], ["P"], to=TensorProto.FLOAT),
         # 0. Scale trait weights to sum to 1 — the network was trained on mixes that sum to 1,
         #    so {"romantic": 1.6, "cozy": 0.6} and {"romantic": 0.73, "cozy": 0.27} mean the same thing.
         n("ReduceSum", ["traits", "ax1"], ["tsum"], keepdims=1), n("Add", ["tsum", "eps"], ["tsum_e"]),
@@ -155,10 +163,10 @@ def build():
         ensure_ascii=False), encoding="utf-8")
     size = (OUT / "recommender.onnx").stat().st_size / 1e6
     print(f"recommender.onnx: {N} fragrances, {A} accords, {size:.1f} MB -> {OUT.resolve()}")
-    return traits, accords, items, E, POP, count, P
+    return traits, accords, items, E16.astype(np.float32), POP, count, P, D16.astype(np.float32)
 
 
-def verify(traits, accords, items, E, POP, count, P):
+def verify(traits, accords, items, E, POP, count, P, dom):
     """Check the ONNX model against a plain-numpy implementation of the same rules."""
     sess = ort.InferenceSession(str(OUT / "recommender.onnx"), providers=["CPUExecutionProvider"])
     W1, b1, W2, b2 = load_mlp()
@@ -178,10 +186,6 @@ def verify(traits, accords, items, E, POP, count, P):
                               "accord_pref": pref, "must": must, "avoid": avoid})
         # numpy reference
         q = np.maximum(t_ref @ W1 + b1, 0) @ W2 + b2; q /= np.linalg.norm(q)
-        dom = np.zeros_like(P)
-        for i, it in enumerate(items):
-            for pos, a in enumerate(it["accords"]):
-                if a in accords: dom[i, accords.index(a)] = DOMINANCE[min(pos, 4)]
         match = E @ q[0] + ACCORD_WEIGHT * (dom @ pref[0])
         ok = allowed[0][G] > 0
         ok &= (count < UNIQUE_MAX) if unique[0] else (count >= POPULAR_MIN)

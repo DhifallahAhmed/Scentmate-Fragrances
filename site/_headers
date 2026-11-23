@@ -1,8 +1,15 @@
-# Netlify response headers (works with drag-and-drop, CLI and Git deploys).
+# Netlify response headers.
 /*
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: camera=(), microphone=(), geolocation=()
-  # Everything is inline; the only network calls go to the AI model on Hugging Face Spaces.
-  Content-Security-Policy: default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data:; connect-src https://*.hf.space; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
+  # Everything comes from this site. 'wasm-unsafe-eval' lets the browser compile the
+  # ONNX Runtime WebAssembly engine (vendor/ort) — it does NOT allow JavaScript eval().
+  Content-Security-Policy: default-src 'none'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'; style-src 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
+
+# The model and engine are large and change rarely: let browsers keep them, but re-check on each visit.
+/model/*
+  Cache-Control: public, max-age=0, must-revalidate
+/vendor/*
+  Cache-Control: public, max-age=31536000, immutable

@@ -1,0 +1,9 @@
+{
+  "name": "scentmate",
+  "private": true,
+  "type": "module",
+  "description": "Netlify Function dependencies (the site itself has no build step).",
+  "dependencies": {
+    "@netlify/blobs": "^11.1.10"
+  }
+}

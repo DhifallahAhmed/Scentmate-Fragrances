@@ -1,4 +1,8 @@
-# Netlify: the frontend is a single static page — no build step.
+# Netlify: a static site (no build step) + one serverless function for feedback.
 [build]
   publish = "site"
   command = ""
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"

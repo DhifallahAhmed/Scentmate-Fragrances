@@ -366,52 +366,130 @@
   </div>
 </div>
 
+<script src="vendor/ort/ort.wasm.min.js"></script>
 <script>
 /* ==================================================================
-   1. MODEL CONNECTION
-   The AI model (recommender.onnx) runs on a Hugging Face Space.
-   This page only handles the conversation; every recommendation is
-   computed by the model on the server (see hf_space/app.py).
+   1. THE AI MODEL — runs right here, in the visitor's browser
+   recommender.onnx (built by build_model.py) is downloaded once and run
+   with ONNX Runtime Web (vendor/ort). It holds the trained personality
+   encoder AND the whole catalogue, and does the scoring, filtering and
+   ranking. Answers never leave the device; only "I'd wear this" clicks
+   are sent to /api/feedback (a Netlify Function) for retraining.
    ================================================================== */
-const API_URL = (location.protocol === "file:" || ["localhost", "127.0.0.1"].includes(location.hostname))
-  ? "http://localhost:7860"                                   // local testing (uvicorn app:app --port 7860)
-  : "https://YOUR-HF-USERNAME-scentmate-api.hf.space";        // ← paste the URL deploy_hf.py prints
-
-// Trait names the model understands (refreshed from /meta) and the note vocabulary for the parser.
 let TRAITS = ["adventurous", "romantic", "professional", "playful", "mysterious", "calm", "confident", "cozy"];
-let NOTE_VOCAB = [];
+let NOTE_VOCAB = [];                 // note names the text parser can recognise ("vanilla", "rose"…)
+let ACCORDS = [], ITEMS = [], NOTES_LOWER = [], SESSION = null;
+const GENDER_CODE = { w: "women", m: "men", u: "unisex" };
+const ALLOWED = { women: [1, 0, 1], men: [0, 1, 1], unisex: [0, 0, 1] };   // [women, men, unisex] may be returned
 
-class ApiError extends Error {
-  constructor(status, message) { super(message); this.status = status; }
+class ModelError extends Error {
+  constructor(message) { super(message); this.status = 0; }
 }
 
-/* Small fetch wrapper: JSON in/out, timeout, and readable errors. status 0 = network/timeout. */
-async function api(path, body, timeoutMs = 60000) {
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
-  try {
-    const r = await fetch(API_URL + path, body
-      ? { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), signal: ctrl.signal }
-      : { signal: ctrl.signal });
-    const data = await r.json().catch(() => ({}));
-    if (!r.ok) throw new ApiError(r.status, typeof data.detail === "string" ? data.detail : `HTTP ${r.status}`);
-    return data;
-  } catch (e) {
-    if (e instanceof ApiError) throw e;
-    throw new ApiError(0, e.name === "AbortError" ? "timeout" : "network");
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
-/* Load the vocabulary AND wake the Space early: free Spaces sleep when idle and the first
-   request can take ~30 s, so we start it while the user is still answering questions. */
 const setStatus = text => document.querySelectorAll(".status").forEach(s => { s.textContent = text; });
-api("/meta", null, 90000).then(m => {
-  TRAITS = m.traits;
-  NOTE_VOCAB = m.notes.slice().sort((a, b) => b.length - a.length);   // longest first: "pink pepper" before "pepper"
-  setStatus("Model ready");
-}).catch(() => { setStatus("Waking the model…"); });
+
+function okJson(r) {
+  if (!r.ok) throw new ModelError(`HTTP ${r.status} for ${r.url}`);
+  return r.json();
+}
+
+/* Start downloading the model immediately, while the user answers the first questions. */
+const modelReady = (async () => {
+  if (location.protocol === "file:") {
+    throw new ModelError("Browsers can't load the model from a file:// page. Run: python -m http.server 8080 -d site  — then open http://localhost:8080");
+  }
+  ort.env.wasm.wasmPaths = new URL("vendor/ort/", location.href).href;
+  ort.env.wasm.numThreads = 1;       // multi-threading needs special server headers; one thread is plenty here
+  const [config, items, session] = await Promise.all([
+    fetch("model/config.json").then(okJson),
+    fetch("model/items.json").then(okJson),
+    ort.InferenceSession.create("model/recommender.onnx", { executionProviders: ["wasm"] }),
+  ]);
+  TRAITS = config.traits;
+  ACCORDS = config.accords;
+  NOTE_VOCAB = config.notes.slice().sort((a, b) => b.length - a.length);   // longest first: "pink pepper" before "pepper"
+  ITEMS = items;                                                           // [name, brand, accords, notes, g, ratings]
+  NOTES_LOWER = items.map(it => it[3].map(n => n.toLowerCase()));
+  SESSION = session;
+})();
+modelReady
+  .then(() => setStatus("Model ready · runs on your device"))
+  .catch(e => { console.error(e); setStatus("The model couldn't load"); });
+
+/* One pass through the ONNX model. */
+async function runModel(traits, gender, unique, accordPref, must, avoid) {
+  const T = TRAITS.length, A = ACCORDS.length;
+  const t = Float32Array.from(TRAITS, k => Math.max(0, +traits[k] || 0));
+  if (!t.some(v => v > 0)) t.fill(1);                      // no personality info yet → neutral blend
+  const vec = f => Float32Array.from(ACCORDS, f);
+  const out = await SESSION.run({
+    traits:      new ort.Tensor("float32", t, [1, T]),
+    allowed:     new ort.Tensor("float32", Float32Array.from(ALLOWED[gender] || [1, 1, 1]), [1, 3]),
+    unique:      new ort.Tensor("float32", Float32Array.of(unique ? 1 : 0), [1]),
+    accord_pref: new ort.Tensor("float32", vec(a => +accordPref[a] || 0), [1, A]),
+    must:        new ort.Tensor("float32", vec(a => (must.includes(a) ? 1 : 0)), [1, A]),
+    avoid:       new ort.Tensor("float32", vec(a => (avoid.includes(a) ? 1 : 0)), [1, A]),
+  });
+  return {
+    ids: Array.from(out.ids.data, Number),                 // int64 → BigInt in JS → plain numbers
+    scores: out.scores.data, matches: out.matches.data,
+    affinity: out.trait_affinity.data, nCons: out.n_constrained.data[0], traitVec: t,
+  };
+}
+
+/* Everything around the model: relax impossible wishes, re-rank by notes, skip what was shown. */
+async function recommend(req) {
+  try { await modelReady; } catch (e) { throw e instanceof ModelError ? e : new ModelError(String(e)); }
+
+  // Hard wishes, oldest first. If fewer than top_k fragrances satisfy them all, drop the OLDEST
+  // and run again — the user's most recent request always wins.
+  let cons = req.constraints.filter(c => ACCORDS.includes(c.accord));
+  let out;
+  while (true) {
+    out = await runModel(req.traits, req.gender, req.unique, req.accord_prefs,
+      cons.filter(c => c.type === "must").map(c => c.accord),
+      cons.filter(c => c.type === "avoid").map(c => c.accord));
+    if (out.nCons >= req.top_k || cons.length === 0) break;
+    cons = cons.slice(1);
+  }
+  const relaxed = req.constraints.filter(c => !cons.includes(c));
+
+  // Candidates = every fragrance passing the filters (the model already ranked them).
+  // Notes the user mentioned ("with vanilla", "no rose") nudge the order.
+  const T = TRAITS.length;
+  const notes = Object.entries(req.notes).map(([k, v]) => [k.toLowerCase(), v]);
+  const n = Math.max(1, Math.min(out.nCons, out.ids.length));
+  const cands = [];
+  for (let j = 0; j < n; j++) {
+    const i = out.ids[j];
+    const nb = notes.reduce((s, [note, v]) => s + (NOTES_LOWER[i].includes(note) ? 0.1 * v : 0), 0);
+    cands.push({ i, score: out.scores[j] + nb, match: out.matches[j] + nb, aff: out.affinity.subarray(j * T, (j + 1) * T) });
+  }
+  cands.sort((a, b) => b.score - a.score);
+
+  // Skip fragrances already shown; when everything has been shown, start over.
+  const excl = new Set(req.exclude);
+  const fresh = cands.filter(c => !excl.has(c.i));
+  const reset = fresh.length < req.top_k && cands.length >= req.top_k;
+  const picked = (reset ? cands : fresh).slice(0, req.top_k);
+
+  return {
+    relaxed, reset_shown: reset,
+    results: picked.map(c => {
+      const [name, brand, accords, noteList, g, count] = ITEMS[c.i];
+      let best = 0;                                         // strongest weighted trait → "fits your romantic side"
+      for (let k = 1; k < T; k++) if (out.traitVec[k] * c.aff[k] > out.traitVec[best] * c.aff[best]) best = k;
+      return { id: c.i, name, brand, accords, notes: noteList, gender: GENDER_CODE[g], ratingCount: count,
+               match: c.match, score: c.score, topTrait: TRAITS[best] };
+    }),
+  };
+}
+
+/* "I'd wear this" → Netlify Function (netlify/functions/feedback.mjs). */
+async function sendFeedback(body) {
+  const r = await fetch("/api/feedback", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+}
 
 /* ==================================================================
    2. LANGUAGE UNDERSTANDING (keyword based, no external API)
@@ -654,7 +732,7 @@ function applyUnderstanding(u, scale = 1) {
 const isLiked = a => (S.accords[a] || 0) >= 1 || S.constraints.some(c => c.type === "must" && c.accord === a);
 
 /* ==================================================================
-   5. RECOMMENDATIONS — ask the AI model on the server
+   5. RECOMMENDATIONS — ask the AI model
    ================================================================== */
 /* Ask the AI model for 3 fragrances. Everything the user told us is sent: personality weights,
    gender, popular/unique mode, accord likes/dislikes, hard must/avoid requests (oldest first,
@@ -665,10 +743,10 @@ async function pickThree(excludeShown) {
     accord_prefs: S.accords, constraints: S.constraints, notes: S.notes,
     exclude: excludeShown ? [...S.shown] : [], top_k: 3,
   };
-  let res = await api("/recommend", req);
+  let res = await recommend(req);
   // If a tweak produced exactly the same three, ask for different ones.
   const same = res.results.length === S.lastPicks.length && res.results.every(p => S.lastPicks.includes(p.id));
-  if (same) res = await api("/recommend", { ...req, exclude: [...new Set([...req.exclude, ...S.lastPicks])] });
+  if (same) res = await recommend({ ...req, exclude: [...new Set([...req.exclude, ...S.lastPicks])] });
 
   S.exhausted = res.reset_shown;                   // nothing new left that fits every current wish
   if (res.reset_shown) S.shown.clear();            // → start over from the best ones
@@ -1080,7 +1158,7 @@ function likeButton(p) {
     b.disabled = true;
     b.textContent = "Saving…";
     try {
-      await api("/feedback", { traits: S.w, gender: S.gender, item_id: p.id }, 15000);
+      await sendFeedback({ traits: S.w, gender: S.gender, item_id: p.id });
       b.textContent = "Noted — thank you. This teaches the model.";
       b.classList.add("liked");
     } catch {
@@ -1142,7 +1220,7 @@ async function send(text, payload = {}) {
   const typingRow = showTyping();
   // Free Hugging Face Spaces sleep when idle; if the model is slow to answer, say why.
   const slowTimer = setTimeout(() => {
-    typingRow.querySelector(".bubble").appendChild(el("div", "slow", "waking up the AI model — this can take ~30 s the first time…"));
+    typingRow.querySelector(".bubble").appendChild(el("div", "slow", "loading the scent model — only the first visit takes a moment…"));
     scrollToBottom();
   }, 4000);
   try {
@@ -1153,10 +1231,9 @@ async function send(text, payload = {}) {
     typingRow.remove();
     console.error(err);
     const retry = [{ label: "Try again", payload: { finish: true } }];
-    if (err.status === 429) {
-      addAIMessage({ text: "You've reached today's limit of recommendations Come back tomorrow for more!" });
-    } else if (err.status === 0) {
-      addAIMessage({ text: "I couldn't reach my scent model — it may still be waking up (free servers nap when idle). Give it a few seconds and try again.", quick: retry });
+    if (err instanceof ModelError) {
+      addAIMessage({ text: location.protocol === "file:" ? err.message
+        : "I couldn't load my scent model — please check your connection and try again.", quick: retry });
     } else {
       addAIMessage({ text: "Hmm, something went wrong on my side. Please try again in a moment.", quick: retry });
     }
@@ -1201,7 +1278,8 @@ function start() {
   resetState();
   renderNotebook();
   addAIMessage({ text: `Hello. Think of me as a perfumer's notebook that asks questions back.\n\n${QUIZ.length} short questions about you, then I'll suggest fragrances whose notes suit you — starting with ones people already love. Pick an answer, or just write it in your own words.` });
-  setTimeout(() => addAIMessage(questionMsg()), 500);
+  const first = questionMsg();                 // build now, so an early answer can't skip question 1
+  setTimeout(() => addAIMessage(first), 500);
 }
 
 start();

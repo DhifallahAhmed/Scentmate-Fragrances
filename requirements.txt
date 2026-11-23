@@ -1,8 +1,7 @@
-# Tools for the training / build / deploy pipeline (run on your PC).
-# The live API has its own, smaller list in hf_space/requirements.txt.
+# Tools for the training / build pipeline (run on your PC).
+# The website itself has no Python: the model runs in the browser.
 numpy>=1.26
 scipy>=1.11
 scikit-learn>=1.4
 onnx>=1.16
 onnxruntime>=1.20
-huggingface_hub>=0.25
