@@ -1,0 +1,1210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Scentmate — fragrance matched to who you are</title>
+<meta name="description" content="Answer six questions about yourself and get fragrance suggestions whose notes fit your personality." />
+<meta name="theme-color" content="#F3ECE0" />
+<link rel="icon" href="favicon.svg" type="image/svg+xml" />
+<style>
+  /* ============================================================
+     SCENTMATE IDENTITY — "the perfumer's notebook"
+     Warm paper, real ink, one wine accent. No gradients, no glass.
+     ============================================================ */
+  :root {
+    --paper:      #F3ECE0;   /* page */
+    --paper-hi:   #FBF7F0;   /* cards, input — a lighter sheet laid on the page */
+    --rule:       #D9CCB8;   /* hairlines */
+    --ink:        #2A211C;   /* text — warm near-black, never #000 */
+    --ink-2:      #5C4E44;
+    --ink-3:      #8A7B6E;
+    --wine:       #7B2D3B;   /* brand accent: oxblood, like a vintage perfume label */
+    --wine-soft:  #EFDCD8;
+    --sage:       #5E6B48;   /* second accent: green notes, calm */
+    --sage-soft:  #E2E3CF;
+    --amber:      #A8722A;   /* warmth: resin, amber, "much loved" */
+    --amber-soft: #F1E3C6;
+
+    /* Typography: a characterful serif for the voice, a quiet sans for controls.
+       Fraunces / Instrument Sans are used if installed or self-hosted (see brief);
+       the fallbacks are deliberate, not defaults. */
+    --serif: "Fraunces", "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+    --sans:  "Instrument Sans", "Avenir Next", "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+
+    --space: 18px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+
+  body {
+    font-family: var(--sans);
+    color: var(--ink);
+    background-color: var(--paper);
+    /* Paper grain: a tiny inline SVG noise tile (no external requests). */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.35 0 0 0 0 0.27 0 0 0 0 0.2 0 0 0 .09 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection { background: var(--wine-soft); }
+  :focus-visible { outline: 2px solid var(--wine); outline-offset: 2px; }
+
+  /* ============================================================
+     LAYOUT — asymmetric: a narrow "margin" column on the left
+     (brand + live notes), the conversation on the right.
+     The eye starts at the logo, then reads down into the chat.
+     ============================================================ */
+  .app {
+    display: grid;
+    grid-template-columns: minmax(250px, 300px) minmax(0, 660px);
+    gap: clamp(32px, 5vw, 72px);
+    padding-left: clamp(24px, 7vw, 120px);
+    height: 100vh;
+    height: 100dvh;
+  }
+
+  /* ---------- Left margin ---------- */
+  .margin {
+    padding: 44px 0 28px;
+    display: flex; flex-direction: column; gap: 26px;
+    border-right: 1px solid var(--rule);
+    padding-right: clamp(24px, 3vw, 40px);
+    overflow-y: auto;
+  }
+  .brand svg { width: 190px; height: auto; display: block; }
+  .tagline {
+    font-family: var(--serif); font-size: 1.18rem; line-height: 1.4; color: var(--ink-2);
+    max-width: 22ch;
+  }
+  .tagline em { color: var(--wine); }
+
+  .notebook {
+    background: var(--paper-hi);
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    padding: 16px 18px 18px;
+    /* ruled-paper lines */
+    background-image: repeating-linear-gradient(to bottom, transparent 0 27px, rgba(138,123,110,.16) 27px 28px);
+    background-position: 0 40px;
+  }
+  .eyebrow {
+    font-family: var(--sans); font-size: 0.68rem; font-weight: 600;
+    letter-spacing: .14em; text-transform: uppercase; color: var(--ink-3);
+  }
+  .notebook dl { margin-top: 10px; display: grid; grid-template-columns: auto 1fr; column-gap: 12px; row-gap: 0; }
+  .notebook dt, .notebook dd { line-height: 28px; font-size: 0.86rem; }
+  .notebook dt { color: var(--ink-3); }
+  .notebook dd { font-family: var(--serif); color: var(--ink); }
+  .notebook dd.empty { color: var(--ink-3); font-style: italic; }
+
+  .margin-foot { margin-top: auto; display: flex; flex-direction: column; gap: 12px; }
+  .small { font-size: 0.76rem; color: var(--ink-3); line-height: 1.5; }
+  .status { font-size: 0.76rem; color: var(--ink-3); display: flex; align-items: center; gap: 7px; }
+  .status::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--sage); }
+
+  .text-btn {
+    align-self: flex-start;
+    font: inherit; font-size: 0.84rem; color: var(--ink-2);
+    background: none; border: none; padding: 0; cursor: pointer;
+    text-decoration: underline; text-decoration-color: var(--rule); text-underline-offset: 4px;
+    transition: color .2s, text-decoration-color .2s;
+  }
+  .text-btn:hover { color: var(--wine); text-decoration-color: var(--wine); }
+
+  /* ---------- Mobile top bar (hidden on desktop) ---------- */
+  .topbar { display: none; }
+
+  /* ---------- Conversation column ---------- */
+  .main { display: flex; flex-direction: column; min-width: 0; min-height: 0; height: 100%; }
+
+  .chat {
+    flex: 1; overflow-y: auto;
+    min-height: 0;            /* lets the chat scroll inside the column instead of pushing the input box off-screen */
+    padding: 44px 8px 20px 0;
+    display: flex; flex-direction: column; gap: 26px;
+    scroll-behavior: smooth;
+  }
+  .chat::-webkit-scrollbar { width: 6px; }
+  .chat::-webkit-scrollbar-thumb { background: var(--rule); border-radius: 6px; }
+
+  .row { display: flex; gap: 14px; animation: settle .45s ease-out both; }
+  @keyframes settle { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+  /* AI: no bubble — it reads like a note written on the page, signed with the mark. */
+  .row.ai { align-items: flex-start; max-width: 600px; }
+  .row.ai .avatar { width: 26px; flex-shrink: 0; padding-top: 3px; }
+  .row.ai .avatar svg { width: 26px; height: 26px; display: block; }
+  .row.ai .bubble { min-width: 0; flex: 1; }
+
+  /* User: a small slip of paper pinned to the right. */
+  .row.user { align-self: flex-end; max-width: 78%; }
+  .row.user .avatar { display: none; }
+  .row.user .bubble {
+    background: var(--paper-hi);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    padding: 10px 14px;
+    box-shadow: 2px 3px 0 rgba(90, 70, 55, .08);
+    font-size: 0.95rem; color: var(--ink);
+  }
+
+  .bubble { line-height: 1.6; overflow-wrap: anywhere; }
+  .row.ai .txt { font-family: var(--serif); font-size: 1.06rem; color: var(--ink); white-space: pre-wrap; }
+  .row.user .txt { white-space: pre-wrap; }
+  .meta { font-size: 0.7rem; color: var(--ink-3); margin-top: 6px; }
+  .row.user .meta { text-align: right; }
+
+  .pre { font-family: var(--serif); font-style: italic; color: var(--sage); font-size: 0.98rem; margin-bottom: 10px; }
+
+  /* ---------- Quiz ---------- */
+  .progress { display: flex; align-items: center; gap: 14px; margin-bottom: 8px; }
+  .progress-label { font-size: 0.68rem; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-3); white-space: nowrap; }
+  .progress-track { flex: 0 1 140px; height: 1px; background: var(--rule); position: relative; }
+  .progress-track > span { position: absolute; left: 0; top: -1px; height: 3px; background: var(--wine); transition: width .7s ease; }
+  .question { font-family: var(--serif); font-size: 1.5rem; line-height: 1.25; font-weight: 500; letter-spacing: -0.01em; max-width: 26ch; }
+
+  /* ---------- Answers ---------- */
+  .quick { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+  .quick button {
+    font: inherit; font-size: 0.9rem; color: var(--ink);
+    background: var(--paper-hi);
+    border: 1px solid var(--ink-3);
+    border-radius: 5px;
+    padding: 8px 14px;
+    cursor: pointer;
+    transition: background .15s, border-color .15s, color .15s, transform .1s;
+  }
+  .quick button:hover:not(:disabled) { background: var(--amber-soft); border-color: var(--ink); }
+  .quick button:active:not(:disabled) { transform: translateY(1px); }
+  .quick button.secondary { background: none; border-color: transparent; color: var(--ink-2); text-decoration: underline; text-decoration-color: var(--rule); text-underline-offset: 4px; padding-inline: 6px; }
+  .quick button.secondary:hover:not(:disabled) { background: none; color: var(--wine); text-decoration-color: var(--wine); }
+  .quick button:disabled { opacity: .4; cursor: default; }
+  .quick button.chosen { opacity: 1; background: var(--ink); color: var(--paper-hi); border-color: var(--ink); }
+
+  /* ---------- Profile ---------- */
+  .profile { margin-top: 16px; padding: 4px 0 4px 18px; border-left: 3px solid var(--wine); }
+  .profile-label { font-size: 0.68rem; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-3); }
+  .profile-title { font-family: var(--serif); font-style: italic; font-size: 1.75rem; color: var(--wine); margin: 2px 0 10px; letter-spacing: -0.01em; }
+  .trait { display: grid; grid-template-columns: 96px minmax(60px, 180px) 40px; align-items: center; gap: 12px; font-size: 0.85rem; margin-top: 4px; color: var(--ink-2); }
+  .trait-bar { height: 5px; background: var(--sage-soft); border-radius: 3px; overflow: hidden; }
+  .trait-bar > span { display: block; height: 100%; width: 0; background: var(--sage); transition: width 1s ease; }
+  .trait-pct { font-family: var(--serif); text-align: right; font-variant-numeric: oldstyle-nums; }
+
+  /* ---------- Fragrance "labels" ---------- */
+  .cards { display: grid; gap: 14px; margin-top: 16px; }
+  .card {
+    position: relative;
+    background: var(--paper-hi);
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    padding: 18px 20px 16px;
+    animation: settle .5s ease-out both;
+  }
+  /* The first pick gets a little more presence — hierarchy, not a grid of equals. */
+  .card:first-child { border-color: var(--ink-3); box-shadow: 3px 4px 0 rgba(90, 70, 55, .1); }
+  .card-no { font-size: 0.66rem; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: var(--wine); margin-bottom: 6px; }
+  .card-top { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; }
+  .card-name { font-family: var(--serif); font-size: 1.28rem; line-height: 1.2; font-weight: 500; }
+  .card-brand { font-size: 0.72rem; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3); margin-top: 4px; }
+  .card-score { text-align: right; white-space: nowrap; color: var(--ink); }
+  .card-score b { font-family: var(--serif); font-weight: 500; font-size: 1.9rem; line-height: 1; font-variant-numeric: oldstyle-nums; }
+  .card-score small { display: block; font-size: 0.66rem; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3); margin-top: 2px; }
+  .match-bar { height: 1px; background: var(--rule); margin: 14px 0 12px; position: relative; }
+  .match-bar > span { position: absolute; left: 0; top: -1px; height: 3px; width: 0; background: var(--wine); transition: width 1s ease; }
+
+  .badge { display: inline-block; font-size: 0.72rem; margin-top: 8px; color: var(--ink-2); }
+  .badge::before { content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 6px; vertical-align: 1px; background: var(--ink-3); }
+  .badge.hot::before { background: var(--amber); }
+  .badge.pop::before { background: var(--wine); }
+  .badge.gem::before { background: var(--sage); }
+
+  .pills { display: flex; flex-wrap: wrap; gap: 6px 6px; align-items: baseline; }
+  .pill { font-size: 0.74rem; padding: 2px 8px; border: 1px solid var(--rule); border-radius: 3px; color: var(--ink-2); background: transparent; }
+  .pill.hit { background: var(--wine-soft); border-color: transparent; color: var(--wine); font-weight: 600; }
+  .pill.note { border: none; padding: 2px 4px; font-family: var(--serif); font-style: italic; font-size: 0.86rem; color: var(--ink-3); }
+  .pill.note.hit { background: none; color: var(--wine); }
+  .pill.neg { text-decoration: line-through; color: var(--ink-3); background: none; border-color: var(--rule); }
+
+  .why { font-family: var(--serif); font-style: italic; font-size: 0.92rem; color: var(--ink-2); margin-top: 12px; }
+  .like {
+    margin-top: 12px; font: inherit; font-size: 0.8rem; color: var(--ink-2);
+    background: none; border: none; padding: 0; cursor: pointer;
+    text-decoration: underline; text-decoration-color: var(--rule); text-underline-offset: 4px;
+  }
+  .like:hover:not(:disabled) { color: var(--wine); text-decoration-color: var(--wine); }
+  .like.liked { color: var(--sage); text-decoration: none; cursor: default; }
+
+  .adjusted { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+
+  /* ---------- "Writing…" indicator ---------- */
+  .typing { display: inline-flex; align-items: center; gap: 5px; padding-top: 10px; }
+  .typing span { width: 5px; height: 5px; border-radius: 50%; background: var(--ink-3); animation: ink 1.3s infinite ease-in-out; }
+  .typing span:nth-child(2) { animation-delay: .18s; }
+  .typing span:nth-child(3) { animation-delay: .36s; }
+  @keyframes ink { 0%, 70%, 100% { opacity: .25; } 35% { opacity: 1; } }
+  .typing .slow { font-family: var(--serif); font-style: italic; font-size: 0.9rem; color: var(--ink-3); margin-left: 10px; }
+
+  /* ---------- Composer ---------- */
+  .composer { padding: 12px 8px calc(22px + env(safe-area-inset-bottom)) 0; }
+  .input-wrap {
+    display: flex; align-items: flex-end; gap: 10px;
+    background: var(--paper-hi);
+    border: 1px solid var(--ink-3);
+    border-radius: 6px;
+    padding: 6px 6px 6px 16px;
+    transition: border-color .2s, box-shadow .2s;
+  }
+  .input-wrap:focus-within { border-color: var(--ink); box-shadow: 3px 4px 0 rgba(90, 70, 55, .1); }
+  textarea {
+    flex: 1; resize: none; border: none; outline: none; background: transparent;
+    color: var(--ink); font: inherit; font-size: 0.98rem; line-height: 1.45;
+    padding: 9px 0; max-height: 140px;
+  }
+  textarea::placeholder { color: var(--ink-3); font-family: var(--serif); font-style: italic; }
+  textarea:focus-visible { outline: none; }   /* the whole input box shows focus instead */
+  .send {
+    width: 40px; height: 40px; flex-shrink: 0;
+    border: none; border-radius: 4px; background: var(--wine);
+    display: grid; place-items: center; cursor: pointer;
+    transition: background .15s, opacity .2s;
+  }
+  .send svg { width: 18px; height: 18px; }
+  .send:hover:not(:disabled) { background: #652331; }
+  .send:disabled { opacity: .35; cursor: not-allowed; }
+  .hint { font-size: 0.7rem; color: var(--ink-3); margin-top: 8px; }
+
+  /* ============================================================
+     MOBILE — the margin collapses into a slim top bar
+     ============================================================ */
+  @media (max-width: 860px) {
+    .app { display: flex; flex-direction: column; padding: 0; gap: 0; }
+    .margin { display: none; }
+    .topbar {
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      padding: 12px 18px; border-bottom: 1px solid var(--rule);
+      background: var(--paper);
+    }
+    .topbar svg { height: 30px; width: auto; display: block; }
+    .main { flex: 1; min-height: 0; padding: 0 16px; }
+    .chat { padding: 24px 0 12px; gap: 22px; }
+    .composer { padding: 10px 0 calc(14px + env(safe-area-inset-bottom)); }
+    .question { font-size: 1.3rem; }
+    .row.user { max-width: 88%; }
+    .hint { display: none; }
+    .trait { grid-template-columns: 84px 1fr 36px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+    .chat { scroll-behavior: auto; }
+  }
+</style>
+</head>
+<body>
+<!-- The logo, defined once and reused (margin + mobile bar). -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <g id="mark" fill="none" stroke="#7B2D3B" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M35 4.5C31 14 13.5 29 13.5 42.5C13.5 53.5 21.5 60 32 60C42.5 60 50.5 53 50.5 42.5C50.5 31 40 20.5 35 4.5Z" stroke-width="3"/>
+      <path d="M28.2 47.8C27.2 42.6 36.6 41.3 36.2 47.4C36 50.2 34 51.9 31.8 52.6" stroke-width="2.6"/>
+      <path d="M23.6 48.6C21.9 38.2 41.2 35.4 41.2 46.6C41.2 51.6 38.4 55.1 34.6 56.4" stroke-width="2.6"/>
+      <path d="M19.8 45.2C20.4 34.6 31.6 29.6 39.4 32.8" stroke-width="2.6"/>
+    </g>
+  </defs>
+</svg>
+
+<div class="app">
+
+  <!-- ===================== LEFT MARGIN (desktop) ===================== -->
+  <aside class="margin" aria-label="About Scentmate">
+    <div class="brand">
+      <svg viewBox="0 0 300 72" role="img" aria-label="Scentmate">
+        <use href="#mark" transform="translate(2 4)"/>
+        <text x="68" y="50" fill="#2A211C" font-family="Fraunces, 'Iowan Old Style', 'Palatino Linotype', Palatino, 'Book Antiqua', Georgia, serif" font-size="40" letter-spacing="-0.5">scent<tspan fill="#7B2D3B" font-style="italic">mate</tspan></text>
+      </svg>
+    </div>
+
+    <p class="tagline">Fragrance matched to <em>who you are</em> — not to whatever is trending this month.</p>
+
+    <section class="notebook" aria-live="polite">
+      <div class="eyebrow">Your notes so far</div>
+      <dl id="notebook"></dl>
+    </section>
+
+    <div class="margin-foot">
+      <button class="text-btn restart" type="button">Start over</button>
+      <p class="small">Suggestions come from the notes and accords of 41,704 fragrances, read by a model trained for this.</p>
+      <div class="status">Connecting to the model…</div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <!-- ===================== MOBILE BAR ===================== -->
+    <header class="topbar">
+      <svg viewBox="0 0 300 72" role="img" aria-label="Scentmate">
+        <use href="#mark" transform="translate(2 4)"/>
+        <text x="68" y="50" fill="#2A211C" font-family="Fraunces, 'Iowan Old Style', 'Palatino Linotype', Palatino, 'Book Antiqua', Georgia, serif" font-size="40" letter-spacing="-0.5">scent<tspan fill="#7B2D3B" font-style="italic">mate</tspan></text>
+      </svg>
+      <button class="text-btn restart" type="button">Start over</button>
+    </header>
+
+    <!-- ===================== CONVERSATION ===================== -->
+    <main class="chat" id="chat" aria-live="polite" aria-label="Conversation"></main>
+
+    <!-- ===================== COMPOSER ===================== -->
+    <footer class="composer">
+      <form class="input-wrap" id="form" autocomplete="off">
+        <textarea id="input" rows="1" placeholder="Pick an answer, or say it in your own words…" aria-label="Message"></textarea>
+        <button class="send" id="sendBtn" type="submit" aria-label="Send" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="#FBF7F0" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M13 7l5 5-5 5"/></svg>
+        </button>
+      </form>
+      <div class="hint">Enter to send · Shift + Enter for a new line</div>
+    </footer>
+  </div>
+</div>
+
+<script>
+/* ==================================================================
+   1. MODEL CONNECTION
+   The AI model (recommender.onnx) runs on a Hugging Face Space.
+   This page only handles the conversation; every recommendation is
+   computed by the model on the server (see hf_space/app.py).
+   ================================================================== */
+const API_URL = (location.protocol === "file:" || ["localhost", "127.0.0.1"].includes(location.hostname))
+  ? "http://localhost:7860"                                   // local testing (uvicorn app:app --port 7860)
+  : "https://YOUR-HF-USERNAME-scentmate-api.hf.space";        // ← paste the URL deploy_hf.py prints
+
+// Trait names the model understands (refreshed from /meta) and the note vocabulary for the parser.
+let TRAITS = ["adventurous", "romantic", "professional", "playful", "mysterious", "calm", "confident", "cozy"];
+let NOTE_VOCAB = [];
+
+class ApiError extends Error {
+  constructor(status, message) { super(message); this.status = status; }
+}
+
+/* Small fetch wrapper: JSON in/out, timeout, and readable errors. status 0 = network/timeout. */
+async function api(path, body, timeoutMs = 60000) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    const r = await fetch(API_URL + path, body
+      ? { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), signal: ctrl.signal }
+      : { signal: ctrl.signal });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) throw new ApiError(r.status, typeof data.detail === "string" ? data.detail : `HTTP ${r.status}`);
+    return data;
+  } catch (e) {
+    if (e instanceof ApiError) throw e;
+    throw new ApiError(0, e.name === "AbortError" ? "timeout" : "network");
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/* Load the vocabulary AND wake the Space early: free Spaces sleep when idle and the first
+   request can take ~30 s, so we start it while the user is still answering questions. */
+const setStatus = text => document.querySelectorAll(".status").forEach(s => { s.textContent = text; });
+api("/meta", null, 90000).then(m => {
+  TRAITS = m.traits;
+  NOTE_VOCAB = m.notes.slice().sort((a, b) => b.length - a.length);   // longest first: "pink pepper" before "pepper"
+  setStatus("Model ready");
+}).catch(() => { setStatus("Waking the model…"); });
+
+/* ==================================================================
+   2. LANGUAGE UNDERSTANDING (keyword based, no external API)
+   ================================================================== */
+
+// Words that signal each personality trait.
+const TRAIT_WORDS = {
+  romantic:     ["romantic", "romance", "love", "date", "valentine", "sensual", "wedding", "tender"],
+  adventurous:  ["adventur", "travel", "explor", "wild", "outdoor", "hike", "daring", "risk"],
+  professional: ["professional", "office", "work", "business", "meeting", "interview", "formal", "corporate"],
+  playful:      ["playful", "fun", "party", "cheerful", "bubbly", "spontaneous", "silly", "goofy"],
+  mysterious:   ["mysterious", "mystery", "dark", "enigmatic", "seductive", "introvert", "secretive"],
+  calm:         ["calm", "relax", "chill", "peace", "quiet", "zen", "gentle", "serene", "laid back", "laid-back"],
+  confident:    ["confident", "power", "leader", "strong", "elegant", "classy", "charismatic", "boss", "bold"],
+  cozy:         ["cozy", "cosy", "comfort", "homebody", "snug", "warm-hearted", "caring", "kind"],
+};
+
+// Words that signal each scent accord (used for "spicier", "less sweet", etc.).
+const ACCORD_WORDS = {
+  Spicy:    ["spic", "pepper", "cinnamon", "clove", "cardamom"],
+  Sweet:    ["sweet", "sugar", "candy", "honey"],
+  Fresh:    ["fresh", "clean", "crisp"],
+  Floral:   ["floral", "flower", "rose", "jasmine", "bloom"],
+  Woody:    ["wood", "cedar", "sandal"],
+  Fruity:   ["fruit", "berry", "peach", "apple"],
+  Citrus:   ["citrus", "lemon", "orange", "bergamot", "zest", "lime"],
+  Green:    ["green", "herbal", "grass", "leafy", "herb"],
+  Powdery:  ["powder", "iris", "soft"],
+  Smoky:    ["smok", "incense", "fire", "burn"],
+  Leathery: ["leather", "suede"],
+  Aquatic:  ["aquatic", "marine", "ocean", "sea ", "seaside", "water", "beach"],
+  Oriental: ["oriental", "amber", "exotic", "opulent"],
+  Creamy:   ["cream", "milk", "coconut"],
+  Gourmand: ["gourmand", "dessert", "edible", "chocolate", "vanilla", "caramel", "coffee", "tonka"],
+  Earthy:   ["earth", "vetiver", "moss", "soil"],
+  Resinous: ["resin", "balsam", "myrrh", "frankincense"],
+  Animal:   ["animal", "musk", "civet"],
+  Chypre:   ["chypre"],
+  "Fougère":["fougere", "fougère", "barbershop"],
+};
+const ACCORD_EMOJI = {
+  Spicy: "", Sweet: "", Fresh: "", Floral: "", Woody: "", Fruity: "", Citrus: "", Green: "",
+  Powdery: "", Smoky: "", Leathery: "", Aquatic: "", Oriental: "", Creamy: "", Gourmand: "",
+  Earthy: "", Resinous: "", Animal: "", Chypre: "", "Fougère": "",
+};
+
+// Seasons translate into accord directions.
+const SEASON_ACCORDS = {
+  winter: { Gourmand: 1, Oriental: .5 }, summer: { Fresh: 1, Aquatic: .5 },
+  spring: { Floral: 1, Green: .5 },      autumn: { Woody: 1, Spicy: .5 }, fall: { Woody: 1, Spicy: .5 },
+};
+
+// Words that flip a clause to negative ("less sweet", "not too smoky", "I hate vanilla").
+const NEGATION = /\b(less|not|no|without|too|hate|dislike|don'?t|avoid|fewer|never|nothing|tone down|lose the)\b/;
+
+/* Word-START match: "spic" matches "spicier", but "sea" won't match inside "overseas"
+   and "date" won't match inside "update". Regexes are cached. */
+const _re = new Map();
+function hasWord(text, w) {
+  if (!_re.has(w)) _re.set(w, new RegExp(`(^|[^\\p{L}])${w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`, "u"));
+  return _re.get(w).test(text);
+}
+
+/* Gender words are matched as WHOLE words ("her" must not match "herbal", "man" not "mango"). */
+const GENDER_WORDS = {
+  unisex: ["unisex", "neutral", "gender neutral", "gender-neutral", "for both", "everyone", "anyone", "shared"],
+  women:  ["women", "woman", "womens", "women's", "female", "feminine", "her", "she", "girl", "girls", "girlfriend", "wife", "mom", "mum", "mother", "sister", "lady", "ladies", "daughter", "femme"],
+  men:    ["men", "man", "mens", "men's", "male", "masculine", "him", "he", "guy", "guys", "boy", "boyfriend", "husband", "dad", "father", "brother", "son", "gentleman", "homme"],
+};
+function detectGender(text) {
+  const t = text.toLowerCase();
+  for (const [g, words] of Object.entries(GENDER_WORDS))       // unisex checked first ("both men and women")
+    if (words.some(w => new RegExp(`(^|[^\\p{L}'])${w}($|[^\\p{L}'])`, "u").test(t))) return g;   // words contain no regex specials
+  return null;
+}
+
+/* Popular vs unique. "Unique" is checked first because "not popular" contains "popular". */
+function detectMode(text) {
+  if (/\b(unique|niche|rare|unusual|uncommon|hidden gems?|underrated|obscure|lesser[- ]known|less popular|not (so |too )?(mainstream|popular|common)|indie|nobody (else )?(has|wears)|stand out)\b/.test(text)) return "unique";
+  if (/\b(popular|mainstream|famous|well[- ]known|best ?sellers?|crowd[- ]pleas\w*|designer|known brands?|safe (choice|pick))\b/.test(text)) return "popular";
+  return null;
+}
+
+/* Split a message into clauses so "less sweet but more spicy" is read as two separate requests. */
+function clauses(text) {
+  return text.toLowerCase().split(/[,.;!?]|\bbut\b|\band\b|\bplus\b|\balso\b/).map(s => s.trim()).filter(Boolean);
+}
+
+/* Read a free-text message and return the traits, accords and notes it mentions (+1 liked / −1 disliked). */
+function understand(text) {
+  const out = { traits: {}, accords: {}, notes: {}, any: false };
+  for (const c of clauses(text)) {
+    const sign = NEGATION.test(c) ? -1 : 1;
+
+    for (const [t, words] of Object.entries(TRAIT_WORDS))
+      if (words.some(w => hasWord(c, w))) { out.traits[t] = sign; out.any = true; }
+
+    for (const [a, words] of Object.entries(ACCORD_WORDS))
+      if (words.some(w => hasWord(c, w))) { out.accords[a] = sign; out.any = true; }
+
+    for (const [season, acc] of Object.entries(SEASON_ACCORDS))
+      if (hasWord(c, season)) { for (const [a, v] of Object.entries(acc)) out.accords[a] = sign * v; out.any = true; }
+
+    // Intensity words map onto several accords at once.
+    if (/\b(light|lighter|subtle|softer|airy|delicate)\b/.test(c)) {
+      Object.assign(out.accords, { Fresh: sign, Citrus: sign * 0.5, Oriental: -sign, Resinous: -sign * 0.5 }); out.any = true;
+    }
+    if (/\b(strong|stronger|heavy|heavier|deep|deeper|intense|bolder|richer|loud)\b/.test(c)) {
+      Object.assign(out.accords, { Oriental: sign, Resinous: sign * 0.5, Fresh: -sign * 0.5 }); out.any = true;
+    }
+
+    // Specific notes, matched on word boundaries ("rose" must not match "rosemary").
+    let rest = c;
+    for (const n of NOTE_VOCAB) {
+      const re = new RegExp(`(^|[^\\p{L}])${n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}($|[^\\p{L}])`, "u");
+      if (re.test(rest)) { out.notes[n] = sign; out.any = true; rest = rest.replace(n, " "); }
+    }
+  }
+  return out;
+}
+
+/* ==================================================================
+   3. THE PERSONALITY QUIZ
+   Each option nudges trait weights and, sometimes, accord preferences.
+   `keys` let users answer in their own words instead of tapping.
+   ================================================================== */
+const QUIZ = [
+  {
+    q: "First things first — who is the fragrance for?",
+    isGender: true,
+    options: [
+      { label: "Women's",       gender: "women",  ack: "Women's fragrances it is" },
+      { label: "Men's",         gender: "men",    ack: "Men's fragrances it is" },
+      { label: "Unisex",        gender: "unisex", ack: "Unisex — scents for everyone" },
+      { label: "No preference", gender: null,     ack: "No limits — I'll search everything" },
+    ],
+  },
+  {
+    q: "What does your ideal weekend look like?",
+    options: [
+      { label: "Exploring somewhere new", keys: ["explor", "new", "travel", "trip", "hike", "outdoor", "adventure"], traits: { adventurous: 1, playful: .3 }, ack: "An explorer at heart" },
+      { label: "A dinner date",          keys: ["dinner", "date", "partner", "romantic", "restaurant"], traits: { romantic: 1, mysterious: .3 }, ack: "A romantic — lovely" },
+      { label: "Cozy at home",           keys: ["home", "book", "read", "couch", "movie", "netflix", "sleep", "cozy", "cosy"], traits: { cozy: 1, calm: .5 }, ack: "A homebody, my favourite kind" },
+      { label: "Out with friends",       keys: ["friend", "party", "club", "social", "out", "bar", "festival"], traits: { playful: 1, confident: .3 }, ack: "The life of the party" },
+    ],
+  },
+  {
+    q: "How would your friends describe you?",
+    options: [
+      { label: "Bold and confident",   keys: ["bold", "confident", "strong", "leader", "loud", "brave"], traits: { confident: 1, adventurous: .3 }, ack: "Confidence noted" },
+      { label: "Warm and caring",      keys: ["warm", "caring", "kind", "sweet", "nice", "loving", "gentle"], traits: { cozy: .6, romantic: .6 }, ack: "A warm soul" },
+      { label: "Quiet and deep",       keys: ["quiet", "deep", "introvert", "shy", "thoughtful", "calm", "mysterious"], traits: { mysterious: .8, calm: .5 }, ack: "Still waters run deep" },
+      { label: "Fun and spontaneous",  keys: ["fun", "spontaneous", "crazy", "funny", "energetic", "playful", "chaotic"], traits: { playful: 1, adventurous: .4 }, ack: "Fun and spontaneous — love it" },
+    ],
+  },
+  {
+    q: "Where will you wear your fragrance most?",
+    options: [
+      { label: "Work and the office",     keys: ["work", "office", "job", "school", "uni", "class", "meeting"], traits: { professional: 1, calm: .3 }, ack: "Office-ready it is" },
+      { label: "Dates and nights out",    keys: ["date", "night", "evening", "club", "going out", "dinner"], traits: { mysterious: .6, romantic: .6 }, ack: "After-dark appeal" },
+      { label: "Everyday, casual",        keys: ["every", "daily", "casual", "all", "always", "anywhere"], traits: { calm: .6, playful: .4 }, ack: "An everyday companion" },
+      { label: "Special occasions",       keys: ["special", "occasion", "event", "wedding", "gala", "formal"], traits: { confident: .8, mysterious: .4 }, ack: "Something to make an entrance" },
+    ],
+  },
+  {
+    q: "Which season feels most like you?",
+    options: [
+      { label: "Spring", keys: ["spring"], traits: { romantic: .6, playful: .4 }, accords: { Floral: .5, Green: .3 },    ack: "Spring — fresh blooms" },
+      { label: "Summer", keys: ["summer"], traits: { calm: .5, playful: .5 },    accords: { Fresh: .5, Citrus: .5, Aquatic: .3 }, ack: "Summer — sunshine and sea" },
+      { label: "Autumn", keys: ["autumn", "fall"], traits: { adventurous: .5, mysterious: .5 }, accords: { Woody: .5, Spicy: .4 }, ack: "Autumn — woods and spice" },
+      { label: "Winter", keys: ["winter"], traits: { cozy: .8, mysterious: .3 },  accords: { Gourmand: .5, Oriental: .3 }, ack: "Winter — warm and wrapped up" },
+    ],
+  },
+  {
+    q: "Last one! How should your scent feel?",
+    options: [
+      { label: "Fresh and clean",     keys: ["fresh", "clean", "light", "citrus", "crisp"], traits: { professional: .5, calm: .5 }, accords: { Fresh: 1, Citrus: .6 }, ack: "Fresh and clean" },
+      { label: "Sweet and comforting", keys: ["sweet", "comfort", "vanilla", "gourmand", "sugar"], traits: { cozy: .7, playful: .3 }, accords: { Sweet: 1, Gourmand: .6 }, ack: "Sweet and comforting" },
+      { label: "Warm and spicy",      keys: ["spic", "warm", "pepper", "hot"], traits: { adventurous: .6, confident: .4 }, accords: { Spicy: 1 }, ack: "Warm and spicy" },
+      { label: "Soft and floral",     keys: ["floral", "flower", "soft", "rose", "pretty"], traits: { romantic: 1 }, accords: { Floral: 1, Powdery: .4 }, ack: "Soft and floral" },
+      { label: "Deep and smoky",      keys: ["deep", "smok", "dark", "intense", "oud", "incense"], traits: { mysterious: 1 }, accords: { Smoky: 1, Resinous: .6 }, ack: "Deep and smoky" },
+    ],
+  },
+];
+
+// Names used to build the "scent personality" title, e.g. "The Cozy Dreamer".
+const ADJ  = { romantic: "Romantic", adventurous: "Adventurous", professional: "Polished", playful: "Playful", mysterious: "Mysterious", calm: "Serene", confident: "Bold", cozy: "Cozy" };
+const NOUN = { romantic: "Romantic", adventurous: "Explorer", professional: "Professional", playful: "Free Spirit", mysterious: "Enigma", calm: "Dreamer", confident: "Icon", cozy: "Homebody" };
+
+// Buttons shown after results (the popular/unique toggle flips depending on the current mode).
+function resultQuick() {
+  return [
+    { label: "Spicier" }, { label: "Less sweet" }, { label: "Fresher" },
+    { label: "More floral" }, { label: "Woodier" }, { label: "Show others" },
+    S.unique ? { label: "Popular picks" } : { label: "Something unique" },
+    { label: "Retake quiz", secondary: true },
+  ];
+}
+const GENDER_LABEL = { women: "Women's", men: "Men's", unisex: "Unisex" };
+
+/* ==================================================================
+   4. CONVERSATION STATE
+   ================================================================== */
+let S;
+function resetState() {
+  S = {
+    phase: "quiz",                      // "quiz" → "results"
+    q: 0,                               // current quiz question
+    gender: null,                       // "women" | "men" | "unisex" | null (no preference)
+    unique: false,                      // false = popular first (default), true = lesser-known picks
+    w: Object.fromEntries(TRAITS.map(t => [t, 0])),   // trait weights
+    accords: {},                        // accord preferences (+ liked / − disliked)
+    notes: {},                          // note preferences
+    constraints: [],                    // explicit requests, oldest first: {type:"must"|"avoid", accord}
+    shown: new Set(),                   // fragrances already recommended
+    lastPicks: [],
+    relaxed: [],                        // constraints we had to drop on the last pick
+    confused: 0,                        // unrecognised answers in a row
+  };
+}
+
+const clamp = (x, lo, hi) => Math.max(lo, Math.min(hi, x));
+const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+const addTo = (obj, key, v, lim = 4) => { obj[key] = clamp((obj[key] || 0) + v, -lim, lim); };
+
+/* Merge what the user said into the state. `scale` controls how strong a follow-up tweak is.
+   Clear, explicit accord requests ("spicier", "no sweet") also become HARD constraints,
+   so the next picks are guaranteed to honour them (see pickThree). */
+function applyUnderstanding(u, scale = 1) {
+  for (const [t, s] of Object.entries(u.traits))  S.w[t] = Math.max(0, S.w[t] + s * scale);
+  for (const [a, s] of Object.entries(u.accords)) addTo(S.accords, a, s * scale);
+  for (const [n, s] of Object.entries(u.notes))   addTo(S.notes, n, s * scale);
+  for (const [a, s] of Object.entries(u.accords)) {
+    if (Math.abs(s) < 1) continue;                               // side-effects of "lighter" etc. stay soft
+    S.constraints = S.constraints.filter(c => c.accord !== a);   // newest request wins ("less spicy" then "spicier")
+    S.constraints.push({ type: s > 0 ? "must" : "avoid", accord: a });
+  }
+}
+
+const isLiked = a => (S.accords[a] || 0) >= 1 || S.constraints.some(c => c.type === "must" && c.accord === a);
+
+/* ==================================================================
+   5. RECOMMENDATIONS — ask the AI model on the server
+   ================================================================== */
+/* Ask the AI model for 3 fragrances. Everything the user told us is sent: personality weights,
+   gender, popular/unique mode, accord likes/dislikes, hard must/avoid requests (oldest first,
+   so the server can relax the oldest if nothing satisfies them all), notes, and already-shown ids. */
+async function pickThree(excludeShown) {
+  const req = {
+    traits: S.w, gender: S.gender, unique: S.unique,
+    accord_prefs: S.accords, constraints: S.constraints, notes: S.notes,
+    exclude: excludeShown ? [...S.shown] : [], top_k: 3,
+  };
+  let res = await api("/recommend", req);
+  // If a tweak produced exactly the same three, ask for different ones.
+  const same = res.results.length === S.lastPicks.length && res.results.every(p => S.lastPicks.includes(p.id));
+  if (same) res = await api("/recommend", { ...req, exclude: [...new Set([...req.exclude, ...S.lastPicks])] });
+
+  S.exhausted = res.reset_shown;                   // nothing new left that fits every current wish
+  if (res.reset_shown) S.shown.clear();            // → start over from the best ones
+  S.relaxed = res.relaxed;
+  const picks = res.results.map(p => ({ ...p, count: p.ratingCount }));
+  picks.forEach(p => S.shown.add(p.id));
+  S.lastPicks = picks.map(p => p.id);
+  return picks;
+}
+
+/* Build the personality profile: top-3 traits as percentages + a fun title. */
+function profile() {
+  const total = Object.values(S.w).reduce((a, b) => a + b, 0);
+  if (total === 0) return null;
+  const top = Object.entries(S.w).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]).slice(0, 3);
+  const title = top.length > 1 ? `The ${ADJ[top[1][0]]} ${NOUN[top[0][0]]}` : `The ${NOUN[top[0][0]]}`;
+  return { title, traits: top.map(([t, v]) => ({ name: cap(t), pct: Math.round(100 * v / total) })) };
+}
+
+/* ==================================================================
+   6. MESSAGE BUILDERS — what the "AI" says
+   ================================================================== */
+function questionMsg(pre) {
+  const Q = QUIZ[S.q];
+  return {
+    pre,
+    progress: { n: S.q + 1, of: QUIZ.length },
+    question: Q.q,
+    quick: [
+      ...Q.options.map((o, i) => ({ label: o.label, payload: { option: i } })),
+      { label: "Skip", payload: { skip: true }, secondary: true },
+      ...(S.q > 0 ? [{ label: "Show my picks now", payload: { finish: true }, secondary: true }] : []),
+    ],
+  };
+}
+
+async function resultsMsg(intro) {
+  const prof = profile();
+  return {
+    text: intro || (prof
+      ? "Here's what I learned about you — and the fragrances whose notes fit that personality best:"
+      : S.unique
+        ? "Here are some hidden gems to start with. Answer a few questions any time for more personal picks:"
+        : "Here are some crowd-pleasers to start with. Answer a few questions any time for more personal picks:"),
+    profile: prof,
+    picks: await pickThree(false),
+    outro: S.unique
+      ? "These are lesser-known gems. Say “popular picks” any time to go back to crowd favourites."
+      : "I start with well-loved, popular fragrances. Want something rarer? Tap “Something unique”. Or tell me what to change — “spicier”, “less sweet”, “with vanilla”.",
+    quick: resultQuick(),
+  };
+}
+
+/* Said when every fragrance matching the current wishes has already been shown. */
+function exhaustedText() {
+  const wishes = S.constraints.map(c => (c.type === "avoid" ? "not " : "") + c.accord.toLowerCase());
+  return `That's everything I have that matches all your wishes${wishes.length ? ` (${wishes.join(", ")})` : ""}` +
+    (S.unique ? "." : " among popular fragrances.") +
+    ` Here are the best ones again. For more options, ${S.unique ? "try “popular picks”" : "tap “Something unique” for rarer finds"} or drop one of your wishes.`;
+}
+
+/* Short label for the current search scope, e.g. "Women's · Popular picks". */
+function scopeLabel() {
+  return `${S.gender ? GENDER_LABEL[S.gender] : "All genders"} · ${S.unique ? "Hidden gems" : "Popular picks"}`;
+}
+
+/* Human-readable summary of what was understood, for acknowledgements and the "Adjusted" pills. */
+function adjustments(u) {
+  const list = [];
+  for (const [a, s] of Object.entries(u.accords)) if (Math.abs(s) >= 1) list.push({ label: a, neg: s < 0 });
+  for (const [t, s] of Object.entries(u.traits)) list.push({ label: cap(t), neg: s < 0 });
+  for (const [n, s] of Object.entries(u.notes)) list.push({ label: cap(n), neg: s < 0 });
+  return list;
+}
+
+/* ==================================================================
+   7. THE BRAIN — turn a user message into one or more AI replies
+   `payload` comes from tapped buttons; typed text has no payload.
+   ================================================================== */
+async function respond(text, payload = {}) {
+  const t = text.toLowerCase().trim();
+
+  // ----- Global commands, work in any phase -----
+  if (/\b(restart|start over|retake|redo|new quiz|take the quiz|again from)\b/.test(t)) {
+    resetState();
+    return [questionMsg("Fresh start!")];
+  }
+  if (payload.finish || /\b(skip (the )?quiz|just show|show (me |my )?(results|picks|recommendations|perfumes)|recommend (me )?now)\b/.test(t)) {
+    S.phase = "results";
+    return [await resultsMsg()];
+  }
+  if (/^(hi|hello|hey|yo|hiya|good (morning|evening|afternoon))\b/.test(t) && t.length < 25) {
+    return S.phase === "quiz" ? [questionMsg("Hey there! Let's keep going:")] : [{ text: "Hey again! Want me to tweak your picks? Just tell me what to change.", quick: resultQuick() }];
+  }
+  if (/\b(thank|thanks|thx|cheers|ty)\b/.test(t) && t.length < 40) {
+    return [{ text: "My pleasure! Happy sniffing — come back any time you want to explore a new side of yourself.", quick: resultQuick() }];
+  }
+
+  return S.phase === "quiz" ? await quizTurn(t, payload) : await resultsTurn(t);
+}
+
+/* ----- During the quiz ----- */
+async function quizTurn(t, payload) {
+  const Q = QUIZ[S.q];
+  let ack;
+
+  // Wanting something unique / popular can be said at any point.
+  const mode = detectMode(t);
+  if (mode) S.unique = mode === "unique";
+
+  // ----- Question 1: gender -----
+  if (Q.isGender) {
+    let opt = payload.option != null ? Q.options[payload.option] : null;
+    const num = t.match(/^\s*([1-4])\s*$/);
+    if (!opt && num) opt = Q.options[+num[1] - 1];
+    const g = opt ? opt.gender : detectGender(t);
+    if (opt || g) {
+      S.gender = g;
+      ack = opt ? opt.ack : `${GENDER_LABEL[g]} fragrances it is!`;
+    } else if (payload.skip || mode || /\b(no pref\w*|doesn'?t matter|any|either|whatever|skip|don'?t care|all|not sure)\b/.test(t)) {
+      S.gender = null;
+      ack = mode === "unique" ? "Noted — I'll hunt for hidden gems across all genders." : "No limits — I'll search everything";
+    } else if (++S.confused < 2) {
+      return [questionMsg("Just so I search the right shelf — women's, men's, unisex, or no preference?")];
+    } else {
+      S.gender = null;
+      ack = "I'll search everything for now — you can say “show men's” or “women's” later.";
+    }
+    S.confused = 0;
+    S.q++;
+    return [questionMsg(ack)];
+  }
+
+  // ----- Personality questions -----
+  // 1. A tapped button, a number ("2"), or keywords matching one of the options.
+  let opt = payload.option != null ? Q.options[payload.option] : null;
+  const num = t.match(/^\s*([1-9])\s*$/);
+  if (!opt && num) opt = Q.options[+num[1] - 1];
+  if (!opt) {
+    const scored = Q.options.map(o => ({ o, hits: o.keys.filter(k => hasWord(t, k)).length }));
+    const best = scored.sort((a, b) => b.hits - a.hits)[0];
+    if (best.hits > 0) opt = best.o;
+  }
+
+  const u = payload.skip ? { any: false } : understand(t);
+
+  if (opt) {
+    for (const [tr, v] of Object.entries(opt.traits)) S.w[tr] += v;
+    for (const [a, v] of Object.entries(opt.accords || {})) addTo(S.accords, a, v);
+    ack = opt.ack;
+  } else if (u.any) {
+    // 2. Free text that doesn't match an option: still learn from it (traits, accords, notes).
+    applyUnderstanding(u, 1);
+    const bits = adjustments(u).map(a => (a.neg ? "not " : "") + a.label.replace(/^\P{L}+/u, "").toLowerCase());
+    ack = `Got it — noted: ${bits.join(", ")}. I'll factor that in.`;
+  } else if (mode) {
+    ack = mode === "unique" ? "Noted — I'll go for hidden gems instead of the usual suspects." : "Noted — I'll keep it to popular favourites";
+  } else if (payload.skip || /\b(skip|pass|not sure|don'?t know|idk|no idea|whatever|any|either|none)\b/.test(t)) {
+    ack = "No problem, skipping that one.";
+  } else if (++S.confused < 2) {
+    // 3. Nothing recognisable: re-ask once, kindly (same question, same buttons).
+    return [questionMsg("Hmm, I didn't quite catch that Pick one below, describe it in your own words, or say “skip”.")];
+  } else {
+    ack = "Let's move on — I'll work with what I have.";
+  }
+
+  S.confused = 0;
+  S.q++;
+  if (S.q < QUIZ.length) return [questionMsg(ack)];
+
+  S.phase = "results";
+  return [await resultsMsg(`${ack}\n\nAll done! Here's your scent personality and your best matches:`)];
+}
+
+/* ----- After results: refinements and follow-ups ----- */
+async function resultsTurn(t) {
+  // ----- Switch popular ⇄ unique -----
+  const mode = detectMode(t);
+  if (mode && (mode === "unique") !== S.unique) {
+    S.unique = mode === "unique";
+    S.shown.clear();
+    return [{
+      text: S.unique
+        ? "Switching to hidden gems — lesser-known fragrances that still fit your personality:"
+        : "Back to popular picks — well-loved crowd favourites that fit you:",
+      picks: await pickThree(false),
+      quick: resultQuick(),
+    }];
+  }
+
+  // ----- Switch gender ("show men's", "for her instead", "unisex please") -----
+  // Only when the message is short or clearly about the target, so "both spicy and sweet" isn't misread.
+  const g = detectGender(t);
+  if (g && g !== S.gender && (t.split(/\s+/).length <= 4 || /\b(for|switch|show|change|instead|version|only|perfumes?|fragrances?|scents?|colognes?|side)\b/.test(t))) {
+    S.gender = g;
+    S.shown.clear();
+    return [{ text: `Switched to ${GENDER_LABEL[g].toLowerCase()} fragrances. Here's what fits you best:`, picks: await pickThree(false), quick: resultQuick() }];
+  }
+
+  const u = understand(t);
+  const wantsOthers = /\b(other|others|another|different|else|next|alternative|alternatives|more options|more picks|new ones)\b/.test(t);
+
+  if (u.any) {
+    applyUnderstanding(u, 1.5);                       // tweaks after results count more
+    const picks = await pickThree(wantsOthers);
+    // Be honest when not every wish could be met at once.
+    const relaxed = S.relaxed.length
+      ? `\n(I couldn't find enough that are also ${S.relaxed.map(c => (c.type === "avoid" ? "not " : "") + c.accord.toLowerCase()).join(" and ")}, so I relaxed that.)`
+      : "";
+    return [{
+      text: (wantsOthers && S.exhausted ? exhaustedText()
+        : wantsOthers ? "Got it — here are some new ones adjusted to that:" : "Adjusted! Here's what fits better now:") + relaxed,
+      adjusted: adjustments(u),
+      picks,
+      quick: resultQuick(),
+    }];
+  }
+  if (wantsOthers || /\b(more|again|another)\b/.test(t)) {
+    const picks = await pickThree(true);
+    return [{ text: S.exhausted ? exhaustedText() : "Here are a few more you haven't seen yet:", picks, quick: resultQuick() }];
+  }
+  if (/\b(why|how)\b/.test(t)) {
+    return [{ text: "I compare your personality profile with each fragrance's accords and notes. Every trait has a scent signature — romantic leans floral and powdery, adventurous leans spicy and leathery — and I pick the fragrances closest to your mix. Your tweaks then push specific accords up or down.", quick: resultQuick() }];
+  }
+  return [{
+    text: "I can reshape your picks any way you like. Try a scent direction (“spicier”, “less sweet”, “fresher”, “something smoky”), a note (“with vanilla”, “no rose”), or a vibe (“more for the office”, “more romantic”).",
+    quick: resultQuick(),
+  }];
+}
+
+/* ==================================================================
+   8. AI ENTRY POINT
+   Runs the conversation logic (which calls the model on the server when
+   recommendations are needed). A short minimum delay keeps the typing
+   indicator from flashing on instant replies.
+   ================================================================== */
+async function getAIResponse(text, payload) {
+  const started = Date.now();
+  const replies = await respond(text, payload);
+  const minDelay = (S.phase === "quiz" ? 450 : 600) + Math.random() * 400;
+  const wait = minDelay - (Date.now() - started);
+  if (wait > 0) await new Promise(r => setTimeout(r, wait));
+  return replies;
+}
+
+/* ==================================================================
+   9. RENDERING
+   All user-supplied text goes through textContent (never innerHTML),
+   so typing HTML/script into the chat is harmless.
+   ================================================================== */
+const chat    = document.getElementById("chat");
+const form    = document.getElementById("form");
+const input   = document.getElementById("input");
+const sendBtn = document.getElementById("sendBtn");
+
+const AI_ICON = `<svg viewBox="0 0 64 64" aria-hidden="true"><use href="#mark"/></svg>`;   // the logo mark signs each note
+const timeNow = () => new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+/* Element helper: el("div", "class", "text") */
+function el(tag, cls, text) {
+  const n = document.createElement(tag);
+  if (cls) n.className = cls;
+  if (text != null) n.textContent = text;
+  return n;
+}
+
+/* Animate a bar's width on the next frame so the CSS transition plays. */
+function fillLater(span, pct) {
+  requestAnimationFrame(() => requestAnimationFrame(() => { span.style.width = `${pct}%`; }));
+}
+
+/* Create a message row (avatar + bubble) and return the bubble to fill. */
+function addRow(role) {
+  const row = el("div", `row ${role}`);
+  const avatar = el("div", "avatar");
+  if (role === "ai") avatar.innerHTML = AI_ICON;     // static, trusted markup
+  else avatar.textContent = "You";
+  const bubble = el("div", "bubble");
+  row.append(avatar, bubble);
+  chat.appendChild(row);
+  scrollToBottom();
+  return { row, bubble };
+}
+
+function addUserMessage(text) {
+  const { bubble } = addRow("user");
+  bubble.append(el("div", "txt", text), el("div", "meta", timeNow()));
+}
+
+/* Render one AI message object (any combination of the fields below). */
+function addAIMessage(m) {
+  const { bubble } = addRow("ai");
+
+  if (m.pre) bubble.appendChild(el("div", "pre", m.pre));
+
+  if (m.progress) {
+    const p = el("div", "progress");
+    const track = el("div", "progress-track");
+    const fill = el("span");
+    fill.style.width = `${100 * (m.progress.n - 1) / m.progress.of}%`;
+    track.appendChild(fill);
+    p.append(el("span", "progress-label", `Question ${m.progress.n} of ${m.progress.of}`), track);
+    bubble.appendChild(p);
+    fillLater(fill, 100 * m.progress.n / m.progress.of);
+  }
+
+  if (m.question) bubble.appendChild(el("div", "question", m.question));
+  if (m.text) bubble.appendChild(el("div", "txt", m.text));
+
+  // Personality profile card
+  if (m.profile) {
+    const card = el("div", "profile");
+    card.append(el("div", "profile-label", `Your scent personality · ${scopeLabel()}`), el("div", "profile-title", m.profile.title));
+    m.profile.traits.forEach(tr => {
+      const row = el("div", "trait");
+      const bar = el("div", "trait-bar");
+      const fill = el("span");
+      bar.appendChild(fill);
+      row.append(el("span", null, tr.name), bar, el("span", "trait-pct", `${tr.pct}%`));
+      card.appendChild(row);
+      fillLater(fill, tr.pct);
+    });
+    bubble.appendChild(card);
+  }
+
+  // "Adjusted: +Spicy, −Sweet" pills
+  if (m.adjusted && m.adjusted.length) {
+    const adj = el("div", "adjusted");
+    m.adjusted.forEach(a => adj.appendChild(el("span", `pill ${a.neg ? "neg" : "hit"}`, a.label)));
+    bubble.appendChild(adj);
+  }
+
+  // Fragrance cards
+  if (m.picks && m.picks.length) {
+    const cards = el("div", "cards");
+    m.picks.forEach((p, i) => {
+      const card = el("div", "card");
+      card.style.animationDelay = `${0.12 * (i + 1)}s`;          // stagger cards in
+      card.appendChild(el("div", "card-no", i === 0 ? "No. 1 — start here" : `No. ${i + 1}`));
+
+      // Match % is the personality fit only — the popularity boost affects order, not this number.
+      const pct = Math.round(100 * clamp(p.match, 0.05, 0.99));
+      const top = el("div", "card-top");
+      const left = el("div");
+      left.append(el("div", "card-name", p.name), el("div", "card-brand", p.brand), popularityBadge(p));
+      const score = el("div", "card-score");
+      score.append(el("b", null, String(pct)), el("small", null, "% fit"));
+      top.append(left, score);
+
+      const bar = el("div", "match-bar");
+      const fill = el("span");
+      bar.appendChild(fill);
+      fillLater(fill, pct);
+
+      // Accords the user asked for are highlighted.
+      const pills = el("div", "pills");
+      p.accords.forEach(a => pills.appendChild(el("span", `pill${isLiked(a) ? " hit" : ""}`, a)));
+      p.notes.slice(0, 4).forEach(n => pills.appendChild(el("span", `pill note${(S.notes[n.toLowerCase()] || 0) > 0 ? " hit" : ""}`, n)));
+
+      // One-line explanation of why this was picked.
+      const liked = p.accords.filter(isLiked);
+      const why = `Fits your ${p.topTrait} side` + (liked.length ? ` · leans ${liked.join(" & ").toLowerCase()}` : "");
+
+      card.append(top, bar, pills, el("div", "why", why), likeButton(p));
+      cards.appendChild(card);
+    });
+    bubble.appendChild(cards);
+  }
+
+  if (m.outro) {
+    const o = el("div", "meta", m.outro);
+    o.style.marginTop = "12px";
+    bubble.appendChild(o);
+  }
+
+  // Quick-reply buttons
+  if (m.quick) {
+    const q = el("div", "quick");
+    m.quick.forEach(opt => {
+      const b = el("button", opt.secondary ? "secondary" : null, opt.label);
+      b.type = "button";
+      b.addEventListener("click", () => {
+        b.classList.add("chosen");
+        // Send the label plus a payload, so taps are never misread.
+        send(opt.label, opt.payload || {});
+      });
+      q.appendChild(b);
+    });
+    bubble.appendChild(q);
+  }
+
+  bubble.appendChild(el("div", "meta", timeNow()));
+  scrollToBottom();
+}
+
+/* "Very popular · 2,633 ratings · Men's" — tells the user how mainstream a pick is. */
+function popularityBadge(p) {
+  const [label, cls] = p.count >= 500 ? ["Much loved", "hot"] : p.count >= 100 ? ["Well known", "pop"] : ["Hidden gem", "gem"];
+  const ratings = p.count > 0 ? ` · ${p.count.toLocaleString()} ratings` : "";
+  return el("div", `badge ${cls}`, `${label}${ratings} · ${GENDER_LABEL[p.gender]}`);
+}
+
+/* "Love it" — sends feedback to the server. These likes are the training data that
+   teach the model what real people with each personality actually choose (train.py reads them). */
+function likeButton(p) {
+  const b = el("button", "like", "I'd wear this");
+  b.type = "button";
+  b.addEventListener("click", async () => {
+    b.disabled = true;
+    b.textContent = "Saving…";
+    try {
+      await api("/feedback", { traits: S.w, gender: S.gender, item_id: p.id }, 15000);
+      b.textContent = "Noted — thank you. This teaches the model.";
+      b.classList.add("liked");
+    } catch {
+      b.textContent = "I'd wear this";
+      b.disabled = false;
+      b.title = "Couldn't save just now — try again";
+    }
+  });
+  return b;
+}
+
+/* Left-margin notebook: a running summary of what the user has told us. */
+function renderNotebook() {
+  const dl = document.getElementById("notebook");
+  if (!dl) return;
+  const prof = profile();
+  const wishes = S.constraints.map(c => (c.type === "avoid" ? "no " : "") + c.accord.toLowerCase());
+  const rows = [
+    ["For", S.gender ? GENDER_LABEL[S.gender] : (S.q > 0 ? "Anyone" : null)],
+    ["Leaning", prof ? prof.traits.map(t => t.name.toLowerCase()).join(", ") : null],
+    ["Wishes", wishes.length ? wishes.join(", ") : null],
+    ["Showing", S.unique ? "hidden gems" : "much-loved first"],
+  ];
+  dl.replaceChildren(...rows.flatMap(([k, v]) => [el("dt", null, k), el("dd", v ? null : "empty", v || "—")]));
+}
+
+/* Typing indicator: an AI row with three animated dots. */
+function showTyping() {
+  const { row, bubble } = addRow("ai");
+  bubble.classList.add("typing");
+  bubble.setAttribute("aria-label", "Scentmate is typing");
+  bubble.innerHTML = "<span></span><span></span><span></span>";
+  return row;
+}
+
+function scrollToBottom() { chat.scrollTop = chat.scrollHeight; }
+
+/* Old quick replies become inactive once the conversation moves on. */
+function freezeQuickReplies() {
+  chat.querySelectorAll(".quick button").forEach(b => { b.disabled = true; });
+}
+
+/* ==================================================================
+   10. SEND FLOW
+   ================================================================== */
+let busy = false;
+
+async function send(text, payload = {}) {
+  text = text.trim();
+  if (!text || busy) return;
+
+  busy = true;
+  freezeQuickReplies();
+  addUserMessage(text);
+  input.value = "";
+  autoResize();
+  updateSendState();
+
+  const typingRow = showTyping();
+  // Free Hugging Face Spaces sleep when idle; if the model is slow to answer, say why.
+  const slowTimer = setTimeout(() => {
+    typingRow.querySelector(".bubble").appendChild(el("div", "slow", "waking up the AI model — this can take ~30 s the first time…"));
+    scrollToBottom();
+  }, 4000);
+  try {
+    const replies = await getAIResponse(text, payload);
+    typingRow.remove();
+    replies.forEach(addAIMessage);
+  } catch (err) {
+    typingRow.remove();
+    console.error(err);
+    const retry = [{ label: "Try again", payload: { finish: true } }];
+    if (err.status === 429) {
+      addAIMessage({ text: "You've reached today's limit of recommendations Come back tomorrow for more!" });
+    } else if (err.status === 0) {
+      addAIMessage({ text: "I couldn't reach my scent model — it may still be waking up (free servers nap when idle). Give it a few seconds and try again.", quick: retry });
+    } else {
+      addAIMessage({ text: "Hmm, something went wrong on my side. Please try again in a moment.", quick: retry });
+    }
+  } finally {
+    clearTimeout(slowTimer);
+    renderNotebook();
+    busy = false;
+    updateSendState();
+    input.placeholder = S.phase === "quiz"
+      ? "Pick an answer, or say it in your own words…"
+      : "Try “spicier” or “with vanilla”…";
+    if (window.matchMedia("(pointer: fine)").matches) input.focus();   // don't pop the mobile keyboard
+  }
+}
+
+function updateSendState() { sendBtn.disabled = busy || input.value.trim() === ""; }
+
+/* Grow the textarea with its content (capped by CSS max-height). */
+function autoResize() {
+  input.style.height = "auto";
+  input.style.height = input.scrollHeight + "px";
+}
+
+/* ==================================================================
+   11. EVENT WIRING + START
+   ================================================================== */
+form.addEventListener("submit", e => { e.preventDefault(); send(input.value); });
+input.addEventListener("input", () => { autoResize(); updateSendState(); });
+
+// Enter sends, Shift+Enter inserts a newline. isComposing protects IME users.
+input.addEventListener("keydown", e => {
+  if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); send(input.value); }
+});
+
+document.querySelectorAll(".restart").forEach(btn => btn.addEventListener("click", () => {
+  if (busy) return;
+  chat.innerHTML = "";
+  start();
+}));
+
+function start() {
+  resetState();
+  renderNotebook();
+  addAIMessage({ text: `Hello. Think of me as a perfumer's notebook that asks questions back.\n\n${QUIZ.length} short questions about you, then I'll suggest fragrances whose notes suit you — starting with ones people already love. Pick an answer, or just write it in your own words.` });
+  setTimeout(() => addAIMessage(questionMsg()), 500);
+}
+
+start();
+</script>
+</body>
+</html>

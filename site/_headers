@@ -1,0 +1,8 @@
+# Netlify response headers (works with drag-and-drop, CLI and Git deploys).
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=()
+  # Everything is inline; the only network calls go to the AI model on Hugging Face Spaces.
+  Content-Security-Policy: default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data:; connect-src https://*.hf.space; base-uri 'none'; form-action 'none'; frame-ancestors 'none'

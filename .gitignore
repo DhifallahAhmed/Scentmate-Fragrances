@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Training outputs (re-created by train.py in ~1 minute)
+artifacts/
+
+# Dataset — scraped third-party data, kept out of the public repo by default.
+# Delete these two lines if you want to version it (and have the right to publish it).
+data/*.json
+!data/.gitkeep
+
+# Runtime data written by the API (rate-limit DB, collected feedback)
+hf_space/data/
+*.db
+feedback.jsonl
+
+# Secrets / local tooling
+.env
+.netlify/
+.claude/

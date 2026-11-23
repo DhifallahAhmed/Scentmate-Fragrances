@@ -1,0 +1,4 @@
+# Netlify: the frontend is a single static page — no build step.
+[build]
+  publish = "site"
+  command = ""
