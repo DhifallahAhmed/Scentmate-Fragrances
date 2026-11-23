@@ -1,4 +1,4 @@
-"""tools/run_checks.py - run the same checks as the GitHub Action, on your own PC.
+"""tools/run_checks.py - run every check on your own PC before pushing.
 
 Usage:  python tools/run_checks.py            (from the project folder, with requirements installed)
 Runs: model quality gate, download size budget, Netlify function tests, and the browser smoke test

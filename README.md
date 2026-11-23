@@ -33,7 +33,7 @@ netlify/functions/        feedback.mjs (/api/feedback), log.mjs (/api/log) — s
 | `tools/size_budget.py` | Fails if a first visit would download more than 12 MB |
 | `tools/check_deploy.py` | Checks the live site: compression, cache headers, transfer sizes |
 | `tests/` | `functions.mjs` (Netlify functions) and `smoke.mjs` (real browser, CPU slowed 4×) |
-| `.github/workflows/checks.yml` | Runs all of the above on every push |
+| `tools/run_checks.py` | Runs every check above in one go — use it before pushing |
 
 ## Run locally
 
@@ -54,14 +54,13 @@ python build_model.py   # -> site/model/, verified, then the quality gate (fails
 After an intended quality change: `python evaluate.py --update-baseline`.
 To retune ranking: `python evaluate.py --tune` (writes `eval/params.json`), then `python build_model.py`.
 
-## Checks
+## Checks (run before pushing)
 
 ```bash
-python evaluate.py && python tools/size_budget.py && node tests/functions.mjs
-cd tests && npm install && npx playwright install chromium && cd ..
-BASE_URL=http://localhost:8080 node tests/smoke.mjs            # with the local server running
+python tools/run_checks.py                                     # quality gate, size budget, function + browser tests
 python tools/check_deploy.py https://<your-site>.netlify.app   # after deploying
 ```
+The browser test needs `cd tests && npm install` once (it uses Edge on Windows, Playwright's Chromium elsewhere).
 
 ## Operating it (Netlify → Site configuration → Environment variables)
 
