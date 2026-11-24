@@ -11,6 +11,7 @@ The <hash> changes whenever the content changes, so browsers may cache those fil
 MODEL INPUTS
   traits       float [1, T]  personality weights, order = config.traits (any scale; normalised inside)
   allowed      float [1, 3]  genders that may be returned: [women, men, unisex] as 0/1
+  budget       float [1, 4]  price levels that may be returned: [unknown, $, $$, $$$] as 0/1 (see PRICE_TIERS)
   unique       float [1]     0 = popular first (>= 100 ratings), 1 = hidden gems (< 50 ratings)
   accord_pref  float [1, A]  soft accord preferences (+ liked / - disliked), order = config.accords
   must, avoid  float [1, A]  hard constraints (1 = result must / must not contain the accord)
@@ -34,6 +35,7 @@ FILES = OUT / "files"
 POPULAR_MIN, UNIQUE_MAX = 100, 50
 DOMINANCE = [1.0, 0.85, 0.7, 0.55, 0.4]          # weight of an accord by its position in the list
 GENDERS = ["women", "men", "unisex"]
+PRICE_TIERS = Path("data/brand_price_tiers.csv")  # brand -> 1 ($) / 2 ($$) / 3 ($$$); unlisted brands = 0 (unknown)
 TOP_K = 100                                     # candidates returned; the page re-ranks/trims
 # Ranking defaults (written to config.json; tuned with evaluate.py --tune). Order = the `params` input.
 PARAMS = {"pop_weight": 0.5, "relevance_window": 0.25, "accord_weight": 0.08, "lowinfo_weight": 0.0, "anchor_weight": 0.0}
@@ -46,6 +48,12 @@ def load_mlp():
     m = onnx.load(ART / "trait_encoder.onnx")
     w = {t.name: numpy_helper.to_array(t) for t in m.graph.initializer}
     return w["W1"], w["b1"], w["W2"], w["b2"]
+
+
+def price_tiers():
+    import csv
+    lines = [l for l in PRICE_TIERS.read_text(encoding="utf-8").splitlines() if l.strip() and not l.startswith("#")]
+    return {r["brand"]: int(r["tier"]) for r in csv.DictReader(lines)}
 
 
 def catalogue(items, accords):
@@ -66,6 +74,7 @@ def catalogue(items, accords):
         "E8": E8, "E_scale": scale.astype(np.float32), "E_zp": np.zeros(N, np.int8),
         "DLEV": DLEV, "DTABLE": DTABLE,
         "GCODE": np.array([GENDERS.index(it["gender"]) for it in items], np.uint8),
+        "PCODE": np.array([it["priceTier"] for it in items], np.uint8),
         "COUNT": np.array([it["ratingCount"] for it in items], np.int32),
         "LOWINFO": np.array([it.get("lowInfo", False) for it in items], np.uint8),
     }
@@ -85,7 +94,7 @@ def build_graph(traits, accords, cat, N):
     consts = dict(cat, W1=W1, b1=b1, W2=W2, b2=b2, QT=QT.astype(np.float32),
                   eps=f(1e-9), zero=f(0.0), one=f(1.0), half=f(0.5), big=f(1e4), hundred=f(100.0),
                   logmin=f(lo), logspan=f(hi - lo), popmin=f(POPULAR_MIN), unimax=f(UNIQUE_MAX),
-                  gcodes=np.array([[0, 1, 2]], np.uint8), ax0=i64([0]), ax1=i64([1]), K=i64([min(TOP_K, N)]),
+                  gcodes=np.array([[0, 1, 2]], np.uint8), pcodes=np.array([[0, 1, 2, 3]], np.uint8), ax0=i64([0]), ax1=i64([1]), K=i64([min(TOP_K, N)]),
                   **{f"p{i}": np.array(i, np.int64) for i in range(5)})
     inits = [numpy_helper.from_array(v, k) for k, v in consts.items()]
     n = helper.make_node
@@ -96,6 +105,8 @@ def build_graph(traits, accords, cat, N):
         n("Greater", ["D", "zero"], ["P_b"]), n("Cast", ["P_b"], ["P"], to=TensorProto.FLOAT),
         n("Unsqueeze", ["GCODE", "ax1"], ["g_col"]), n("Equal", ["g_col", "gcodes"], ["G_b"]),
         n("Cast", ["G_b"], ["G"], to=TensorProto.FLOAT),
+        n("Unsqueeze", ["PCODE", "ax1"], ["p_col"]), n("Equal", ["p_col", "pcodes"], ["PR_b"]),
+        n("Cast", ["PR_b"], ["PR"], to=TensorProto.FLOAT),
         n("Cast", ["COUNT"], ["cnt"], to=TensorProto.FLOAT), n("Add", ["cnt", "one"], ["cnt1"]), n("Log", ["cnt1"], ["logc"]),
         n("Sub", ["logc", "logmin"], ["lc0"]), n("Div", ["lc0", "logspan"], ["lc1"]),
         n("Max", ["lc1", "zero"], ["lc2"]), n("Min", ["lc2", "one"], ["POP"]),                  # 0..1 log popularity
@@ -122,8 +133,10 @@ def build_graph(traits, accords, cat, N):
         n("Gemm", ["E", "qf"], ["cos2"], transB=1),
         n("Gemm", ["D", "accord_pref"], ["acc2"], transB=1), n("Mul", ["acc2", "w_acc"], ["accw"]),
         n("Add", ["cos2", "accw"], ["match2"]), n("Squeeze", ["match2", "ax1"], ["match"]),
-        # --- 3. Filters: gender, popularity band, hard accord constraints
-        n("Gemm", ["G", "allowed"], ["g2"], transB=1), n("Squeeze", ["g2", "ax1"], ["gok"]),
+        # --- 3. Filters: gender, budget (price level), popularity band, hard accord constraints
+        n("Gemm", ["G", "allowed"], ["g2"], transB=1), n("Squeeze", ["g2", "ax1"], ["gok0"]),
+        n("Gemm", ["PR", "budget"], ["pr2"], transB=1), n("Squeeze", ["pr2", "ax1"], ["pok"]),
+        n("Mul", ["gok0", "pok"], ["gok"]),
         n("Mul", ["BAND_DIFF", "unique"], ["bd"]), n("Add", ["BAND_POP", "bd"], ["band"]),
         n("Sub", ["avoid", "must"], ["am"]), n("Gemm", ["P", "am"], ["v2"], transB=1),
         n("Squeeze", ["v2", "ax1"], ["vp"]), n("ReduceSum", ["must", "ax1"], ["msum"], keepdims=0),
@@ -154,7 +167,7 @@ def build_graph(traits, accords, cat, N):
     fin = lambda name, shape: helper.make_tensor_value_info(name, TensorProto.FLOAT, shape)
     graph = helper.make_graph(
         nodes, "scentmate_recommender",
-        [fin("traits", [1, T]), fin("allowed", [1, 3]), fin("unique", [1]), fin("accord_pref", [1, A]),
+        [fin("traits", [1, T]), fin("allowed", [1, 3]), fin("budget", [1, 4]), fin("unique", [1]), fin("accord_pref", [1, A]),
          fin("must", [1, A]), fin("avoid", [1, A]), fin("params", [5]),
          helper.make_tensor_value_info("anchor", TensorProto.INT64, [1])],
         [helper.make_tensor_value_info("ids", TensorProto.INT64, [None]), fin("scores", [None]), fin("matches", [None]),
@@ -176,6 +189,9 @@ def build():
     meta = json.loads((ART / "meta.json").read_text(encoding="utf-8"))
     traits, items = meta["traits"], meta["items"]
     N = len(items)
+    tiers = price_tiers()
+    for it in items:
+        it["priceTier"] = tiers.get(it["brand"], 0)
     accords = sorted({a for it in items for a in it["accords"] if a != "Main Accords"})
     cat = catalogue(items, accords)
     model = build_graph(traits, accords, cat, N)
@@ -189,10 +205,10 @@ def build():
     from train import key_hash
     hashes = [key_hash(it["key"]) for it in items]
     assert len(set(hashes)) == len(hashes), "fragrance key hash collision — switch to a 64-bit hash"
-    # [name, brand, accords, notes, gender, ratings, estimated?, keyHash]
+    # [name, brand, accords, notes, gender, ratings, estimated?, keyHash, priceTier 0-3]
     items_file = write_hashed("items", "json", json.dumps(
         [[it["name"], it["brand"], it["accords"][:5], it["notes"][:5], it["gender"][0], it["ratingCount"],
-          int(it.get("ratingSource") == "estimated"), hashes[i]] for i, it in enumerate(items)],
+          int(it.get("ratingSource") == "estimated"), hashes[i], it["priceTier"]] for i, it in enumerate(items)],
         ensure_ascii=False, separators=(",", ":")).encode("utf-8"))
     note_counts = Counter(nt.lower() for it in items for nt in it["notes"])
     (OUT / "config.json").write_text(json.dumps(
@@ -203,10 +219,11 @@ def build():
         ensure_ascii=False), encoding="utf-8")
     size = (OUT / model_file).stat().st_size / 1e6
     print(f"{model_file}: {N} fragrances, {len(accords)} accords, {size:.1f} MB")
+    print("price levels:", dict(sorted(Counter(["unknown", "$", "$$", "$$$"][it["priceTier"]] for it in items).items())))
     return traits, accords, items, cat
 
 
-def reference(cat, traits_w, allowed, unique, pref, must, avoid, params, anchor, W):
+def reference(cat, traits_w, allowed, budget, unique, pref, must, avoid, params, anchor, W):
     """Plain-numpy version of the graph, used to verify the ONNX model."""
     W1, b1, W2, b2 = W
     E = cat["E8"].astype(np.float32) * cat["E_scale"][:, None]
@@ -220,7 +237,7 @@ def reference(cat, traits_w, allowed, unique, pref, must, avoid, params, anchor,
     q = np.maximum(t @ W1 + b1, 0) @ W2 + b2; q /= np.linalg.norm(q) + 1e-9
     q = q * (1 - w_anchor) + E[anchor] * w_anchor; q /= np.linalg.norm(q) + 1e-9
     match = E @ q + w_acc * (D @ pref)
-    ok = allowed[cat["GCODE"]] > 0
+    ok = (allowed[cat["GCODE"]] > 0) & (budget[cat["PCODE"]] > 0)
     ok &= (count < UNIQUE_MAX) if unique else (count >= POPULAR_MIN)
     ok &= (P @ must == must.sum()) & (P @ avoid == 0)
     if not unique:
@@ -240,15 +257,16 @@ def verify(traits, accords, items, cat):
         t = (rng.dirichlet(np.ones(len(traits)) * .5) * (3.7 if case % 2 else 1)).astype(np.float32)
         allowed = np.array([[1, 0, 1], [0, 1, 1], [0, 0, 1], [1, 1, 1]][case % 4], np.float32)
         unique = float(case == 5)
+        budget = np.array([[1, 1, 1, 1], [0, 1, 0, 0], [1, 1, 1, 0], [0, 1, 1, 0]][case % 4], np.float32)
         pref, must, avoid = (np.zeros(len(accords), np.float32) for _ in range(3))
         if case >= 2: pref[accords.index("Spicy")] = 1.5; must[accords.index("Spicy")] = 1
         if case >= 3: avoid[accords.index("Sweet")] = 1
         params = np.array([0.5, 0.25, 0.08, 0.05 * (case % 3), 0.7 if case >= 6 else 0.0], np.float32)
         anchor = int(rng.integers(len(items)))
-        out = sess.run(None, {"traits": t[None], "allowed": allowed[None], "unique": np.array([unique], np.float32),
-                              "accord_pref": pref[None], "must": must[None], "avoid": avoid[None],
+        out = sess.run(None, {"traits": t[None], "allowed": allowed[None], "budget": budget[None],
+                              "unique": np.array([unique], np.float32), "accord_pref": pref[None], "must": must[None], "avoid": avoid[None],
                               "params": params, "anchor": np.array([anchor], np.int64)})
-        scored = reference(cat, t, allowed, unique, pref, must, avoid, params, anchor, W)
+        scored = reference(cat, t, allowed, budget, unique, pref, must, avoid, params, anchor, W)
         ref, got = scored.argsort()[::-1][:5], out[0][:5]
         same = list(got) == list(ref) or np.abs(scored[got] - scored[ref]).max() < 1e-5
         ok_all &= bool(same)

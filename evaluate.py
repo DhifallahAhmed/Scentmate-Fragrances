@@ -16,7 +16,7 @@ Quality (compared with eval/baseline.json; a drop beyond TOLERANCE fails):
   hit@10   ... within the first 10 (i.e. after pressing "Show others" up to 3 times)
   recall@10  share of each persona's acceptable fragrances found in the top 10 (averaged)
   coverage   distinct fragrances in all top-3s / (3 x personas)  — low = everyone gets the same picks
-Hard rules (any failure fails the build): results respect the chosen gender, "unique" results have
+Hard rules (any failure fails the build): results respect the chosen gender and budget, "unique" results have
 < 50 ratings, and every "must"/"avoid" wish is honoured whenever the model reports it is satisfiable.
 """
 import json, re, sys
@@ -33,6 +33,7 @@ REPORT = HERE / "eval" / "report.json"
 TOLERANCE = 0.05          # allowed drop in any quality score before the build fails
 TOP_K = 10
 ALLOWED = {"women": [1, 0, 1], "men": [0, 1, 1], "unisex": [0, 0, 1], None: [1, 1, 1]}
+ANY_PRICE = [1, 1, 1, 1]                 # [unknown, $, $$, $$$] — no budget answer = every price level
 GENDER = {"w": "women", "m": "men", "u": "unisex"}
 UNIQUE_MAX = 50
 
@@ -49,7 +50,9 @@ def parse_quiz(html: str):
         opts = []
         for line in re.findall(r"\{ label:.*\}", q):
             g = re.search(r'gender:\s*("(\w+)"|null)', line)
+            b = re.search(r'budget:\s*\[([^\]]*)\]', line)
             opts.append({"label": re.search(r'label:\s*"([^"]+)"', line).group(1),
+                         "budget": [int(x) for x in b.group(1).split(",")] if b else None,
                          "gender": (g.group(2) if g and g.group(2) else None) if g else "n/a",
                          "traits": obj(line, "traits"), "accords": obj(line, "accords")})
         questions.append(opts)
@@ -69,24 +72,25 @@ class Recommender:
     def set_params(self, params):
         self.params = np.array([params[k] for k in self.cfg["param_order"]], np.float32)
 
-    def run(self, w, gender, unique, prefs, must, avoid, anchor=0, anchor_weight=0.0):
+    def run(self, w, gender, unique, prefs, must, avoid, anchor=0, anchor_weight=0.0, budget=ANY_PRICE):
         t = np.array([[max(0.0, w.get(k, 0.0)) for k in self.T]], np.float32)
         if not t.any():
             t[:] = 1
         v = lambda d: np.array([[d.get(a, 0.0) for a in self.A]], np.float32)
         ids, scores, matches, aff, n_cons, n_ranked = self.sess.run(None, {
-            "traits": t, "allowed": np.array([ALLOWED[gender]], np.float32),
+            "traits": t, "allowed": np.array([ALLOWED[gender]], np.float32), "budget": np.array([budget], np.float32),
             "unique": np.array([1.0 if unique else 0.0], np.float32), "accord_pref": v(prefs),
             "must": v({a: 1 for a in must}), "avoid": v({a: 1 for a in avoid}),
             "params": np.concatenate([self.params[:4], [anchor_weight]]).astype(np.float32),
             "anchor": np.array([anchor], np.int64)})
         return [int(i) for i in ids], int(n_cons[0])
 
-    def recommend(self, w, gender, unique, prefs, constraints, k=TOP_K):
+    def recommend(self, w, gender, unique, prefs, constraints, k=TOP_K, budget=ANY_PRICE):
         cons = list(constraints)
         while True:
             ids, n_cons = self.run(w, gender, unique, prefs,
-                                   [a for typ, a in cons if typ == "must"], [a for typ, a in cons if typ == "avoid"])
+                                   [a for typ, a in cons if typ == "must"], [a for typ, a in cons if typ == "avoid"],
+                                   budget=budget)
             if n_cons >= 3 or not cons:
                 break
             cons = cons[1:]                                  # drop the oldest wish, like the page does
@@ -107,13 +111,15 @@ def resolve(items, brand, name):
 
 def persona_inputs(p, quiz):
     """Quiz answers -> (trait weights, accord prefs, gender) exactly as the chat accumulates them."""
-    w, prefs, gender = {}, {}, None
+    w, prefs, gender, budget = {}, {}, None, ANY_PRICE
     for q, label in zip(quiz, p["answers"]):
         opt = next((o for o in q if o["label"] == label), None)
         if opt is None:
             raise ValueError(f"{p['id']}: no answer {label!r} in question {[o['label'] for o in q]}")
         if opt["gender"] != "n/a":
             gender = opt["gender"]
+        if opt["budget"]:
+            budget = opt["budget"]
         for t, x in opt["traits"].items():
             w[t] = w.get(t, 0) + x
         for a, x in opt["accords"].items():
@@ -123,7 +129,7 @@ def persona_inputs(p, quiz):
         for a in p.get("refine", {}).get(typ, []):
             prefs[a] = max(-4, min(4, prefs.get(a, 0) + 1.5 * sign))   # refinements count 1.5x, like the chat
             constraints.append((typ, a))
-    return w, prefs, gender, constraints
+    return w, prefs, gender, constraints, budget
 
 
 def evaluate(rec=None, quiz=None):
@@ -132,9 +138,9 @@ def evaluate(rec=None, quiz=None):
     personas = json.loads(PERSONAS.read_text(encoding="utf-8"))["personas"]
     rows, broken, top3_all = [], [], []
     for p in personas:
-        w, prefs, gender, constraints = persona_inputs(p, quiz)
+        w, prefs, gender, constraints, budget = persona_inputs(p, quiz)
         expected = {resolve(rec.items, b, n) for b, n in p["expected"]}
-        top, kept, n_cons = rec.recommend(w, gender, p.get("unique", False), prefs, constraints)
+        top, kept, n_cons = rec.recommend(w, gender, p.get("unique", False), prefs, constraints, budget=budget)
         top3_all += top[:3]
         # ---- hard rules
         for i in top:
@@ -143,6 +149,8 @@ def evaluate(rec=None, quiz=None):
                 broken.append(f"{p['id']}: gender rule broken by {it[0]}")
             if gender == "unisex" and GENDER[it[4]] != "unisex":
                 broken.append(f"{p['id']}: non-unisex result {it[0]}")
+            if not budget[it[8]]:
+                broken.append(f"{p['id']}: over-budget result {it[0]} (price level {it[8]})")
             if p.get("unique") and it[5] >= UNIQUE_MAX:
                 broken.append(f"{p['id']}: 'unique' returned a popular fragrance {it[0]} ({it[5]} ratings)")
             for typ, a in kept:                          # wishes still active after any relaxation

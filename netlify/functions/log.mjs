@@ -1,10 +1,10 @@
 // Netlify Function: anonymous health events from the page, so you know if the model fails for real visitors.
-//   POST /api/log   (sendBeacon, text/plain JSON)  {type: "load"|"error"|"perf", ok?, ms?, workerMs?, msg?, src?, n?, avgMs?, ua}
+//   POST /api/log   (sendBeacon, text/plain JSON)  {type: "load"|"error"|"perf"|"share", ok?, ms?, workerMs?, msg?, src?, n?, avgMs?, ua}
 //   GET  /api/log?day=YYYY-MM-DD   events of that day as JSONL + a summary line  (header X-Admin-Token = ADMIN_TOKEN)
 // Never receives quiz answers. Stored in Netlify Blobs under log/<day>/..., capped per IP per day.
 import { getStore } from "@netlify/blobs";
 
-const TYPES = ["load", "error", "perf"];
+const TYPES = ["load", "error", "perf", "share"];   // "share" = someone shared their results (a count only)
 const MAX_PER_IP_PER_DAY = 50;
 
 async function sha256(text) {
@@ -49,7 +49,8 @@ export default async (req, context) => {
     const failed = loads.filter(x => x.ok === false).length;
     const times = loads.filter(x => x.ok).map(x => x.ms).sort((a, b) => a - b);
     const summary = { day, loads: loads.length, failed, failRate: loads.length ? +(failed / loads.length).toFixed(3) : 0,
-                      loadMsMedian: times[Math.floor(times.length / 2)] ?? null, errors: events.filter(x => x.type === "error").length };
+                      loadMsMedian: times[Math.floor(times.length / 2)] ?? null, errors: events.filter(x => x.type === "error").length,
+                      shares: events.filter(x => x.type === "share").length };
     const body = [JSON.stringify({ summary }), ...events.map(x => JSON.stringify(x))].join("\n") + "\n";
     return new Response(body, { headers: { "content-type": "application/x-ndjson" } });
   }

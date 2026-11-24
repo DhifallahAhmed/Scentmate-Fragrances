@@ -1,0 +1,358 @@
+# Typical full-bottle (about 100 ml) retail price level per brand, used for the budget question.
+# 1 = $ (under ~$70), 2 = $$ (~$70-200), 3 = $$$ (over ~$200). Brand-level approximation: some lines
+# (e.g. exclusive collections) cost more than their brand's level. Brands not listed are 'unknown'.
+brand,tier
+4711,1
+Abercrombie & Fitch,1
+Adidas,1
+Afnan Perfumes,1
+Agent Provocateur,1
+Aigner,1
+AllSaints,1
+Annayake / アナヤケ,1
+Aramis,1
+Ariana Grande,1
+Armaf,1
+Avon,1
+Banana Republic,1
+Banderas,1
+Bath & Body Works,1
+Benetton,1
+Berdoues,1
+Bogner,1
+Brioni,1
+Britney Spears,1
+Bruno Banani,1
+Cacharel,1
+Calvin Klein,1
+Caudalie,1
+Cerruti,1
+Chabaud,1
+Christina Aguilera,1
+Clean,1
+Clinique,1
+Coach,1
+Coty,1
+Cristiano Ronaldo,1
+Câline,1
+Davidoff,1
+Diesel,1
+Dita von Teese,1
+DKNY / Donna Karan,1
+Dunhill,1
+Elizabeth Arden,1
+Elizabeth Taylor,1
+Ermenegildo Zegna,1
+Escada,1
+Geoffrey Beene,1
+Gianfranco Ferré,1
+Giardini di Toscana,1
+Giorgio Beverly Hills,1
+Guess,1
+Guy Laroche,1
+Halloween,1
+Halston,1
+Hugo Boss,1
+Iceberg,1
+Jacques Bogart,1
+Jaguar,1
+James Bond 007,1
+Jean-Louis Scherrer,1
+Jeanne en Provence,1
+Jennifer Lopez,1
+Jessica Simpson,1
+Jesus del Pozo,1
+Jil Sander,1
+Jimmy Choo,1
+Joop!,1
+Juicy Couture,1
+Karl Lagerfeld,1
+Katy Perry,1
+Kenneth Cole,1
+Korres,1
+Krizia,1
+L'Erbolario,1
+L'Occitane en Provence,1
+La Perla,1
+Lacoste,1
+Lady Gaga,1
+Lalique,1
+Lanvin,1
+Lattafa / لطافة,1
+Laura Biagiotti,1
+Lolita Lempicka,1
+Lush / Cosmetics To Go,1
+M. Asam,1
+Mandarina Duck,1
+Marbert,1
+Mauboussin,1
+Mazzolari,1
+Mercedes-Benz,1
+Mexx,1
+Michael Kors,1
+Miro,1
+Montblanc,1
+Moschino,1
+Mäurer & Wirtz,1
+Nabeel,1
+Naomi Campbell,1
+Nikos,1
+Oscar de la Renta,1
+Parfum-Individual Harry Lehmann,1
+Perry Ellis,1
+Pink Sugar,1
+Puig,1
+Ralph Lauren,1
+Rammstein,1
+Rasasi,1
+Reyane Tradition,1
+Rihanna,1
+Rituals,1
+Roberto Cavalli,1
+Roger & Gallet,1
+Réminiscence,1
+s.Oliver,1
+Salvador Dali,1
+Salvatore Ferragamo,1
+Sarah Jessica Parker,1
+Sol de Janeiro,1
+Swiss Arabian,1
+Ted Lapidus,1
+Tesori d'Oriente,1
+The Body Shop,1
+Tommy Hilfiger,1
+Toni Gard,1
+Trussardi,1
+Ulric de Varens,1
+Vera Wang,1
+Victoria's Secret,1
+Vivienne Westwood,1
+Worth,1
+Yves Rocher,1
+Zara,1
+4160 Tuesdays,2
+Acca Kappa,2
+Acqua di Parma,2
+Aerin,2
+Akro,2
+Al Haramain / الحرمين,2
+Arabian Oud / العربية للعود,2
+Atkinsons,2
+Ayala Moriel,2
+Azzaro,2
+Aēsop,2
+Balenciaga,2
+Balmain,2
+Birkholz,2
+Bottega Veneta,2
+Boucheron,2
+Brecourt,2
+Burberry,2
+Bvlgari,2
+Carolina Herrera,2
+Caron,2
+Carthusia,2
+Cartier,2
+Chanel,2
+Chloé,2
+Chopard,2
+Comme des Garçons,2
+Comptoir Sud Pacifique,2
+Costume National,2
+d'Orsay,2
+D.S. & Durga,2
+Dior,2
+Diptyque,2
+Dolce & Gabbana,2
+Dsquared²,2
+Eisenberg,2
+Elie Saab,2
+Ella K Parfums,2
+Ensar Oud / Oriscent,2
+Escentric Molecules,2
+Essential Parfums,2
+Estēe Lauder,2
+Etat Libre d'Orange,2
+Etro,2
+Fendi,2
+Floris,2
+Fragrance One,2
+Ganache Parfums,2
+Giorgio Armani,2
+Gisada,2
+Givenchy,2
+Goutal,2
+Grès,2
+Gucci,2
+Guerlain,2
+Helmut Lang,2
+Hermès,2
+Hiram Green,2
+Houbigant,2
+Imaginary Authors,2
+Isabey,2
+Issey Miyake,2
+J.F. Schwarzlose Berlin,2
+Jacques Fath,2
+Jacques Zolty,2
+Jean Patou,2
+Jean Paul Gaultier,2
+Jo Malone,2
+Johann Maria Farina gegenüber dem Jülichs-Platz,2
+John Varvatos,2
+Juliette Has A Gun,2
+Kayali,2
+Kemi / Al Kimiya,2
+Kenzo,2
+Kerosene,2
+Kiton,2
+Knize,2
+L'Artisan Parfumeur,2
+La Maison de la Vanille,2
+Laboratorio Olfattivo,2
+Lancôme,2
+Le Couvent,2
+Les Parfums de Rosine,2
+Loewe,2
+Lubin,2
+Maison Margiela,2
+Maison Tahité,2
+Mancera,2
+Marc Gebauer,2
+Marc Jacobs,2
+Maître Parfumeur et Gantier,2
+Miller Harris,2
+Molinard,2
+Molton Brown,2
+Montale,2
+Mugler,2
+Narciso Rodriguez,2
+Neil Morris Fragrances,2
+Nicolaï / Parfums de Nicolaï,2
+Nina Ricci,2
+Odin New York,2
+Olfactive Studio,2
+Olympic Orchids Artisan Perfumes,2
+Omnia Profumi,2
+Paco Rabanne,2
+Papillon Artisan Perfumes,2
+Parfum d'Empire,2
+Parle Moi de Parfum,2
+Phaedon,2
+Philly & Phill,2
+Pierre Guillaume,2
+Prada,2
+Ramón Monegal,2
+Robert Piguet,2
+Rochas,2
+Rogue,2
+Room 1015,2
+Santa Maria Novella,2
+Serge Lutens,2
+Shay & Blue,2
+Shiseido / 資生堂,2
+Simone Andreoli,2
+Tauer Perfumes,2
+The Nose Behind,2
+The Woods Collection,2
+Tiffany & Co.,2
+Téo Cabanel,2
+Une Nuit Nomade,2
+Valentino,2
+Van Cleef & Arpels,2
+Versace,2
+Viktor & Rolf,2
+Yves Saint Laurent,2
+Zadig & Voltaire,2
+Zarkoperfume,2
+Zoologist,2
+Aaron Terence Hughes,3
+Amouage,3
+Annette Neuffer,3
+Areej Le Doré,3
+Argos,3
+bdk Parfums,3
+Boadicea the Victorious,3
+Bogue,3
+Bois 1920,3
+Bond No. 9,3
+By Terry,3
+Byredo,3
+Carner,3
+Celine,3
+Clive Christian,3
+Creed,3
+Dusita,3
+Editions de Parfums Frédéric Malle,3
+Eight & Bob,3
+Electimuss,3
+Ex Nihilo,3
+Farmacia SS. Annunziata,3
+Filippo Sorcinelli,3
+Floraïku,3
+Fragrance Du Bois,3
+Francesca Bianchi,3
+Franck Boclet,3
+Frapin,3
+Goldfield & Banks,3
+Gritti,3
+Grossmith,3
+Heeley,3
+Histoires de Parfums,3
+Il Profvmo,3
+Initio,3
+Jovoy,3
+Kilian,3
+Le Galion,3
+Le Labo,3
+Liquides Imaginaires,3
+LM Parfums,3
+Lorenzo Villoresi,3
+Louis Vuitton,3
+M. Micallef,3
+Maison Crivelli,3
+Maison Francis Kurkdjian,3
+Maison Mona di Orio,3
+Marc-Antoine Barrois,3
+Masque,3
+Matière Première,3
+Memo Paris,3
+Mendittorosa,3
+Mizensir,3
+Moresque,3
+Morph,3
+Naomi Goodsir,3
+Nasomatto,3
+Nishane,3
+Nobile 1942,3
+Ojar,3
+Ormonde Jayne,3
+Orto Parisi,3
+Pantheon,3
+Parfums de Marly,3
+Parfums MDCI,3
+Parfums Vintage,3
+Penhaligon's,3
+Perris Monte Carlo,3
+Profumi del Forte,3
+Profumum Roma,3
+Puredistance,3
+Roberto Ugolini,3
+Roja Parfums,3
+Sisley,3
+Slumberhouse,3
+soOud,3
+Sora Dora,3
+Stéphane Humbert Lucas,3
+Sylvaine Delacourte,3
+Thameen,3
+The Different Company,3
+The House of Oud,3
+The Merchant Of Venice,3
+Theodoros Kalotinis,3
+Tiziana Terenzi,3
+Tom Ford,3
+V Canto,3
+Vilhelm Parfumerie,3
+Widian / AJ Arabia,3
+XerJoff,3

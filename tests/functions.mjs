@@ -48,6 +48,7 @@ assert.equal((await feedback(new Request("http://x/api"), {})).status, 403, "exp
 // log: accept, validate, summarise
 assert.equal((await post(log, { type: "load", ok: true, ms: 900 })).status, 204);
 assert.equal((await post(log, { type: "load", ok: false, msg: "x" })).status, 204);
+assert.equal((await post(log, { type: "share" })).status, 204);
 assert.equal((await post(log, { type: "nope" })).status, 422);
 assert.equal((await post(log, "x".repeat(5000))).status, 413);
 const summary = JSON.parse((await (await log(new Request("http://x/api/log", { headers: { "x-admin-token": "test-token" } }), {})).text()).split("\n")[0]).summary;

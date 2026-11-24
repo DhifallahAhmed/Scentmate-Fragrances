@@ -53,12 +53,25 @@ const say = async text => {
   await page.waitForFunction(n => document.querySelectorAll(".cards").length > n && !document.querySelector(".typing"), before, { timeout: 30000 });
 };
 
-for (const label of ["Men's", "Out with friends", "Fun and spontaneous", "Work and the office", "Spring", "Warm and spicy"]) await answer(label);
+for (const label of ["Men's", "Out with friends", "Fun and spontaneous", "Work and the office", "Spring", "Warm and spicy", "Up to $200"]) await answer(label);
 await page.waitForSelector(".cards .card");
 const quizPicks = await lastCards().locator(".card-name").allInnerTexts();
 if (quizPicks.length !== 3) problems.push(`expected 3 picks after the quiz, got ${quizPicks.length}`);
 const badges = await lastCards().locator(".badge").allInnerTexts();
 if (badges.some(b => b.includes("Women's"))) problems.push(`a women's fragrance was recommended to a men's profile: ${badges}`);
+const prices = await lastCards().locator(".price-tag b").allInnerTexts();
+if (prices.some(p => p === "$$$")) problems.push(`budget "Up to $200" but got a $$$ pick: ${prices}`);
+if (await lastCards().locator("svg.bottle").count() !== 3) problems.push("bottle art missing on cards");
+const findHref = await lastCards().first().locator("a.find").getAttribute("href");
+if (!findHref?.startsWith("https://www.google.com/search?")) problems.push(`"Where to buy" link looks wrong: ${findHref}`);
+// Save the first pick; the shortlist counter and the stored list must follow.
+await lastCards().first().locator("button.save").click();
+if (await lastCards().first().locator("button.save").getAttribute("aria-pressed") !== "true") problems.push("save button did not toggle");
+const savedCount = await page.evaluate(() => loadSaved().length);
+if (savedCount !== 1) problems.push(`expected 1 saved fragrance, got ${savedCount}`);
+if (await page.locator(".profile .share-btn").count() < 1) problems.push("share button missing on the results profile");
+const shareLink = await page.evaluate(() => shareUrl());
+if (!/#r=1330031$/.test(shareLink)) problems.push(`share link does not encode the answers: ${shareLink}`);
 
 await say("fresher and spicier");
 const refined = await lastCards().locator(".card-name").allInnerTexts();
@@ -85,9 +98,21 @@ if (pickBadges.some(b => b.includes("Men's"))) problems.push(`picked a women's f
 const similarToCoco = await lastCards().locator(".card-name").allInnerTexts();
 
 const stats = await page.evaluate(() => ({ n: STATS.recCount, avgMs: Math.round(STATS.recMs / Math.max(1, STATS.recCount)) }));
+
+// Open the shared link fresh: it must replay the quiz and show the same picks; the shortlist must survive the reload.
+await page.goto("about:blank");
+await page.goto(shareLink);
+await page.waitForSelector(".cards .card", { timeout: 60000 });
+const sharedPicks = await lastCards().locator(".card-name").allInnerTexts();
+if (sharedPicks.join("|") !== quizPicks.join("|")) problems.push(`shared link shows different picks: ${sharedPicks} vs ${quizPicks}`);
+if (page.url().includes("#r=")) problems.push("share hash not cleared after replay");
+const shortlistLabel = await page.locator(".margin .saved-btn, .topbar .saved-btn").first().innerText();
+if (!/\(1\)/.test(shortlistLabel)) problems.push(`shortlist count not kept after reload: ${shortlistLabel}`);
+await page.locator(".saved-btn:visible").first().click();
+await page.waitForSelector(".shortlist li", { timeout: 15000 });
 await browser.close();
 
-const report = { cpuSlowdown: CPU_SLOWDOWN, modelLoadMs, recommendations: stats.n, avgRecommendMs: stats.avgMs, quizPicks, refined, similarToSauvage: similar,
+const report = { cpuSlowdown: CPU_SLOWDOWN, modelLoadMs, recommendations: stats.n, avgRecommendMs: stats.avgMs, quizPicks, quizPrices: prices, sharedPicks, refined, similarToSauvage: similar,
                  pickerSuggestions: suggestions, similarToCocoMademoiselle: similarToCoco };
 console.log(JSON.stringify(report, null, 1));
 if (modelLoadMs > LIMITS.modelLoadMs) problems.push(`model load ${modelLoadMs} ms > ${LIMITS.modelLoadMs} ms`);

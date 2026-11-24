@@ -1,8 +1,9 @@
 # Scentmate — personality-based fragrance recommender
 
-A chat that asks six questions about you and suggests fragrances whose notes fit your personality —
-much-loved ones first, hidden gems on request — or finds fragrances similar to one you already love
-("I love Dior Sauvage").
+A chat that asks seven short questions about you (including your budget) and suggests fragrances whose
+notes fit your personality — much-loved ones first, hidden gems on request — or finds fragrances similar
+to one you already love ("I love Dior Sauvage"). Picks can be saved to a shortlist (kept in the browser,
+no account), looked up in a shopping search, and the result can be shared as a link that replays the quiz.
 
 **Everything runs in the browser.** The trained ONNX model is downloaded once (≈ 8 MB compressed on a
 first visit, cached afterwards) and executed with ONNX Runtime Web in a background thread. There is no
@@ -30,6 +31,7 @@ netlify/functions/        feedback.mjs (/api/feedback), log.mjs (/api/log) — s
 | `build_model.py` | Fuse encoder + catalogue + ranking into one compact ONNX model, verify it, then run the quality gate |
 | `evaluate.py` | Score the shipped model on `eval/personas.json`; `--tune` searches the ranking parameters |
 | `data/rating_overrides.csv` | Real rating counts for flagships the dataset is missing (looked up on the web, with sources) |
+| `data/brand_price_tiers.csv` | Typical bottle price level per brand ($ / $$ / $$$) for the budget question — brand-level approximation |
 | `tools/size_budget.py` | Fails if a first visit would download more than 12 MB |
 | `tools/check_deploy.py` | Checks the live site: compression, cache headers, transfer sizes |
 | `tests/` | `functions.mjs` (Netlify functions) and `smoke.mjs` (real browser, CPU slowed 4×) |

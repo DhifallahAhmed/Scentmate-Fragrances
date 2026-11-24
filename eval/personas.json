@@ -1990,6 +1990,32 @@
    ],
    "unique": true,
    "expected": []
+  },
+  {
+   "id": "x-budget-men-fresh",
+   "answers": [
+    "Men's",
+    "Exploring somewhere new",
+    "Fun and spontaneous",
+    "Everyday, casual",
+    "Summer",
+    "Fresh and clean",
+    "Under $70"
+   ],
+   "expected": []
+  },
+  {
+   "id": "x-budget-women-sweet",
+   "answers": [
+    "Women's",
+    "Out with friends",
+    "Warm and caring",
+    "Dates and nights out",
+    "Winter",
+    "Sweet and comforting",
+    "Up to $200"
+   ],
+   "expected": []
   }
  ]
 }

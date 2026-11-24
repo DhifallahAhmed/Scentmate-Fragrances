@@ -42,6 +42,8 @@ async function runModel(req, must, avoid) {
   const out = await SESSION.run({
     traits:      new ort.Tensor("float32", t, [1, T]),
     allowed:     new ort.Tensor("float32", Float32Array.from(ALLOWED[req.gender] || [1, 1, 1]), [1, 3]),
+    // price levels that may be returned: [unknown, $, $$, $$$] (from the budget question; default: any)
+    budget:      new ort.Tensor("float32", Float32Array.from(req.budget || [1, 1, 1, 1]), [1, 4]),
     unique:      new ort.Tensor("float32", Float32Array.of(req.unique ? 1 : 0), [1]),
     accord_pref: new ort.Tensor("float32", vec(a => +req.accord_prefs[a] || 0), [1, A]),
     must:        new ort.Tensor("float32", vec(a => (must.includes(a) ? 1 : 0)), [1, A]),
@@ -89,11 +91,11 @@ async function recommend(req) {
   return {
     relaxed, reset_shown: reset, ms: Math.round(performance.now() - t0),
     results: picked.map(c => {
-      const [name, brand, accords, noteList, g, count, estimated, keyHash] = ITEMS[c.i];
+      const [name, brand, accords, noteList, g, count, estimated, keyHash, priceTier] = ITEMS[c.i];
       let best = 0;                                    // strongest weighted trait -> "fits your romantic side"
       for (let k = 1; k < T; k++) if (out.traitVec[k] * c.aff[k] > out.traitVec[best] * c.aff[best]) best = k;
       return { id: c.i, keyHash, name, brand, accords, notes: noteList, gender: GENDER_CODE[g], ratingCount: count,
-               estimated: !!estimated, match: c.match, score: c.score, topTrait: TRAITS[best] };
+               estimated: !!estimated, priceTier, match: c.match, score: c.score, topTrait: TRAITS[best] };
     }),
   };
 }
